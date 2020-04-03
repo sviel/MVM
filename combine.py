@@ -30,7 +30,7 @@ def get_raw_df(fname, columns, columns_to_deriv, timecol='dt'):
     df[f'deriv_{column}'] = df[column].diff() / df[timecol].diff() * 60. # TODO
   return df
 
-def process_run(objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, columns_dta, offset=0., save=False, ignore_sim=False):
+def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, columns_dta, offset=0., save=False, ignore_sim=False):
   df_rwa = get_raw_df(fullpath_rwa, columns=columns_rwa, columns_to_deriv=['total_vol'])
   df_dta = get_raw_df(fullpath_dta, columns=columns_dta, columns_to_deriv=[])
   df0 = df_dta.join(df_rwa['dt'])
@@ -190,6 +190,7 @@ def process_run(objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, col
 
 
   if args.plot:
+    ttitles = ["R = 5; C = 50","R = 20; C = 20", "R = 10; C = 50"," "]
 
     colors = {  "muscle_pressure": "#009933"  , #green
       "sim_airway_pressure": "#cc3300" ,# red
@@ -223,6 +224,7 @@ def process_run(objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, col
     #plt.plot(   ,  100 *reaction_times,      label='reaction time ', marker='o', markersize=1, linewidth=0, c='red')
     ax.legend(loc='lower left')
 
+    """
     #a clean canavs with simulator only data
     #fig5,ax5 = plt.subplots()
     ax5 = df.plot(x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['sim_airway_pressure'], linewidth = linw)
@@ -238,14 +240,13 @@ def process_run(objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, col
     #a clean canavs with ventilator only data
     #fig5b,ax5b = plt.subplots()
     ax5b = dfhd.plot( x='dt', y='pressure', label='ventilator pressure [cmH2O]', c=colors['pressure'])
-    dfhd.plot(ax=ax5b, x='dt', y='airway_pressure', label='ventilator airway pressure [cmH2O]', c='black')
+    dfhd.plot(ax=ax5b, x='dt', y='airway_pressure', label='ventilator airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
     dfhd.plot(ax=ax5b, x='dt', y='flux', label='ventilator flux [l/min]', c=colors['flux'])
     #dfhd.plot(ax=ax5b, x='dt', y='in', label='in', c='green')
     #dfhd.plot(ax=ax5b, x='dt', y='flow2nd_der', label='flow2nd_der?', c='pink')
     #dfhd.plot(ax=ax5b, x='dt', y='out', label='out', c='red')
     plt.gcf().suptitle("ventilator only data")
     ax5b.legend(loc='lower left')
-
 
 
     maxrunidx = len( df['run'].unique() ) - 1
@@ -267,6 +268,30 @@ def process_run(objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, col
       dfvent.plot(ax=pad8[i],  x='dt', y='pressure', label='ventilator pressure [cmH2O]', c=colors['pressure'], linewidth = linw)
       dfvent.plot(ax=pad8[i],  x='dt', y='airway_pressure', label='ventilator airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
       dfvent.plot(ax=pad8[i],  x='dt', y='flux', label='ventilator flux [l/min]', c=colors['flux'] , linewidth = linw)
+      pad8[i].set_title("%s; PEEP%s; P_i%s; R%s"%(ttitles[i], meta[objname]["Peep"], meta[objname]["Pinspiratia"], meta[objname]["Rate respiratio"]))
+      #pad8[i].set_title('test')
+    """
+
+    three_start_times = [20,50,120]
+    for i in range (0, 3) :
+      fig11,ax11 = plt.subplots()
+      #make a subset dataframe for simulator
+      dftmp = df[ df['start']> three_start_times[i] ]
+      start_times_in_run = dftmp['start'].unique()      #array of start times in period
+      #select three central cycles in period
+      dftmp = dftmp[(dftmp.start>start_times_in_run[1])&(dftmp.start<start_times_in_run[5])]
+      dftmp.plot(ax=ax11, x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['sim_airway_pressure'], linewidth = linw)
+      dftmp.plot(ax=ax11, x='dt', y='total_flow', label='total_flow [l/min]', c=colors['total_flow'], linewidth = linw)
+
+      first_time_bin  = dftmp['dt'].iloc[0]
+      last_time_bin   = dftmp['dt'].iloc[len(dftmp)-1]
+      #make a subset dataframe for ventilator
+      dfvent = dfhd[ (dfhd['dt']>first_time_bin) & (dfhd['dt']<last_time_bin) ]
+      dfvent.plot(ax=ax11,  x='dt', y='pressure', label='ventilator pressure [cmH2O]', c=colors['pressure'], linewidth = linw)
+      dfvent.plot(ax=ax11,  x='dt', y='airway_pressure', label='ventilator airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
+      dfvent.plot(ax=ax11,  x='dt', y='flux', label='ventilator flux [l/min]', c=colors['flux'] , linewidth = linw)
+      ax11.set_title("%s; PEEP%s; P_i%s; R%s"%(ttitles[i], meta[objname]["Peep"], meta[objname]["Pinspiratia"], meta[objname]["Rate respiratio"]))
+      #pad8[i].set_title('test')
 
     """
     fig6,ax6 = plt.subplots(3,3)
@@ -376,4 +401,4 @@ if __name__ == '__main__':
     print(f'will retrieve RWA and DTA simualtor data from {fullpath_rwa} and {fullpath_dta}')
 
     # run
-    process_run(objname=objname, input_mvm=fname, fullpath_rwa=fullpath_rwa, fullpath_dta=fullpath_dta, columns_rwa=columns_rwa, columns_dta=columns_dta, save=args.save, offset=args.offset,  ignore_sim=args.ignore_sim)
+    process_run(meta, objname=objname, input_mvm=fname, fullpath_rwa=fullpath_rwa, fullpath_dta=fullpath_dta, columns_rwa=columns_rwa, columns_dta=columns_dta, save=args.save, offset=args.offset,  ignore_sim=args.ignore_sim)
