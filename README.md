@@ -1,6 +1,5 @@
 # MVM
 
-Code for the analysis of the data from the Mechanical Ventilator Milano
 
 ## Getting started
 Checkout the package via
