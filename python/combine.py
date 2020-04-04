@@ -4,6 +4,8 @@ import matplotlib.pyplot as plt
 from matplotlib.pyplot import cm
 from matplotlib import colors
 import csv
+from scipy.interpolate import interp1d
+
 
 def read_meta_csv(fname, simformat='.rwa'):
   ''' get a dict containing run metadata '''
@@ -30,7 +32,7 @@ def get_raw_df(fname, columns, columns_to_deriv, timecol='dt'):
     df[f'deriv_{column}'] = df[column].diff() / df[timecol].diff() * 60. # TODO
   return df
 
-def process_run(objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, columns_dta, offset=0., save=False, ignore_sim=False):
+def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, columns_dta, offset=0., save=False, ignore_sim=False):
   df_rwa = get_raw_df(fullpath_rwa, columns=columns_rwa, columns_to_deriv=['total_vol'])
   df_dta = get_raw_df(fullpath_dta, columns=columns_dta, columns_to_deriv=[])
   df0 = df_dta.join(df_rwa['dt'])
@@ -59,7 +61,7 @@ def process_run(objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, col
         for x in par: float(x)
       except ValueError:
         continue
-      data.append({'date':l[0], 'flux':float(par[0]),'pressure':float(par[1]), 'in':float(par[2]),'out':float(par[3])})
+      data.append({'date':l[0], 'flux':float(par[0]),'pressure':float(par[1]), 'airway_pressure':float(par[2]), 'in':float(par[3]),'flow2nd_der':float(par[4]), 'out':float(par[5])})
 
   dfhd = pd.DataFrame(data)
   dfhd['dt'] = ( pd.to_datetime(dfhd['date']) - pd.to_datetime(dfhd['date'][0]) )/np.timedelta64(1,'s')
@@ -68,29 +70,39 @@ def process_run(objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, col
   #timestamp = np.linspace( dfhd.iloc[0,:]['dt'] ,  dfhd.iloc[-1,:]['dt'] , len(dfhd) )
 
   #correct for miscalibration of pressure sensor
-  dfhd['pressure'] =dfhd['pressure']+8.54
+  dfhd['pressure'] =dfhd['pressure']
 
   #correct for volume units (ml -> cl)
   df['total_vol'] = df['total_vol'] * 0.01
+  #dfhd = dfhd[(dfhd['dt']>df['dt'].iloc[0]) & (dfhd['dt']<df['dt'].iloc[-1]) ]
 
+  #set MVM flux to 0 when out valve is open
+  dfhd['flux'] = np.where ( dfhd['out'] >50 , 0 , dfhd['flux'] )
+  dfhd['flux'] = np.where ( dfhd['flux'] < 0 , 0 , dfhd['flux'] )
 
   ##################################
   #rough shift for plotting purposes only
   ##################################
-  imax1 = dfhd[ ( dfhd['dt']<4 ) ] ['flux'].idxmax()
+  imax1 = dfhd[ ( dfhd['dt']<14 ) ] ['flux'].idxmax()
   tmax1 = dfhd['dt'].iloc[imax1]
-  imax2 = df[  (df['dt']<6) & (df['dt']>tmax1)   ] ['total_flow'].idxmax()
+  imax2 = df[  (df['dt']<7) & (df['dt']>0.2)   ] ['total_flow'].idxmax()
   tmax2 = df['dt'].iloc[imax2]
   shift  = tmax2 - tmax1
   print (tmax1, tmax2, shift)
-  dfhd['dt'] = timestamp + shift - 0.05  + offset # add arbitrary shift to better match data
+  dfhd['dt'] = timestamp + shift  + offset # add arbitrary shift to better match data
 
   ##################################
   #true start time of breaths based on muscle_pressure (first negative time)
   ##################################
-  negative_times = df[ ( df['muscle_pressure']<0 ) ]['dt']    #array of negative times
-  start_times = [ float (negative_times.iloc[i])  for i in range(0,len(negative_times)) if negative_times.iloc[i]-negative_times.iloc[i-1] > 1.  or i == 0  ]   #select only the first negative per bunch
+  #negative_times = df[ ( df['muscle_pressure']<0 ) ]['dt']    #array of negative times
+  #start_times = [ float (negative_times.iloc[i])  for i in range(0,len(negative_times)) if negative_times.iloc[i]-negative_times.iloc[i-1] > 1.  or i == 0  ]   #select only the first negative per bunch
 
+  ##################################
+  #true start time of breaths based on muscle_pressure (first negative time)
+  ##################################
+  negative_times = dfhd[ ( dfhd['out']>50 ) ]['dt']    #array of negative times
+  start_times = [ float (negative_times.iloc[i])  for i in range(0,len(negative_times)-1) if negative_times.iloc[i+1]-negative_times.iloc[i] > 0.1  or i == 0  ]   #select only the first negative per bunch
+  print(start_times)
   ##################################
   #reaction time of system based on positive flow
   ##################################
@@ -146,34 +158,35 @@ def process_run(objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, col
   df['mean_pressure'] = 0
 
   for i,r in cycle.iterrows():
-    df.loc[df.start == i, 'mean_pressure'] = r.airway_pressure
+    df.loc[df.start == i, 'mean_pressure'] = r.total_flow
 
   df['norm_pressure']  = df['airway_pressure'] - df['mean_pressure']
 
   df['max_pressure'] = 0
   cycle = df.groupby(['start']).max()
   for i,r in cycle.iterrows():
-    df.loc[df.start == i, 'max_pressure'] = r.airway_pressure
+    df.loc[df.start == i, 'max_pressure'] = r.total_flow
 
   ##################################
   # find runs
   ##################################
 
-  df['mean_max_pressure'] = df['max_pressure'].rolling(3).mean()
+  df['mean_max_pressure'] = df['max_pressure'].rolling(4).mean()
 
   df['run'] = abs(df['mean_max_pressure'].diff())
-  df['run'] = np.where(df['run'] > 0.5, 100,0)
+  df['run'] = np.where(df['run'] > 2, 100, 0)
 
   starts  = df[df.run > 0]['dt'].values
 
-  df['total_vol'] = df['total_vol'] * 0.01
   # add run number
   df['run'] = -1
   cc = 1
   for i in range(0,len(starts)-1):
-    if starts[i+1] - starts[i] > 30:
+    if starts[i+1] - starts[i] > 25:
       df.loc[(df['dt'] >= starts[i]) & (df['dt'] < starts[i+1]), 'run'] = cc
       cc += 1
+
+  df['run'] = df['run']*10
 
   if save:
     df.to_hdf(f'{objname}.sim.h5', key='simulator')
@@ -183,27 +196,33 @@ def process_run(objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, col
 
 
   if args.plot:
+    ttitles = ["R = 5; C = 50","R = 20; C = 20", "R = 10; C = 50"," "]
+    resistances = [5,20,10]
+    complinaces = [50,20,50]
 
     colors = {  "muscle_pressure": "#009933"  , #green
-      "airway_pressure": "#cc3300" ,# red
+      "sim_airway_pressure": "#cc3300" ,# red
       "total_flow":"#ffb84d" , #orange
       "total_vol":"#009933" , #orange
       "reaction_time" : "#999999", #
-      "pressure" : "#003399" , #  blue
+      "pressure" : "black" , #  blue
+      "vent_airway_pressure": "#003399" ,# blue
       "flux" : "#3399ff" #light blue
     }
     linw = 2
 
-    ax = df.plot(x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['airway_pressure'], linewidth = linw)
+    ax = df.plot(x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['sim_airway_pressure'])
+    df.plot(ax=ax, x='dt', y='total_flow',    label='total_flow      [l/min]', c=colors['total_flow'])
+    df.plot(ax=ax, x='dt', y='run', label='run index')
+    plt.plot(start_times, [0]*len(start_times), 'bo', label='real cycle start time')
     #df.plot(ax=ax , x='dt', y='muscle_pressure', label='muscle_pressure [cmH2O]', c=colors['muscle_pressure'], linewidth = linw)
-    #df.plot(ax=ax, x='dt', y='run', label='run index')
     #df.plot(ax=ax, x='dt', y='breath_no', label='breath_no', marker='.')
     #df.plot(ax=ax, x='dt', y='tracheal_pressure', label='tracheal_pressure')
-   #df.plot(ax=ax, x='dt', y='total_vol', label='total_vol')
+    #df.plot(ax=ax, x='dt', y='total_vol', label='total_vol')
     #plt.plot(df['dt'], df['total_vol']/10., label='total_vol [cl]')
-    df.plot(ax=ax, x='dt', y='total_flow', label='total_flow [l/min]', c=colors['total_flow'], linewidth = linw)
-    dfhd.plot(ax=ax, x='dt', y='pressure', label='ventilator pressure [cmH2O]', c=colors['pressure'], linewidth = linw)
-    dfhd.plot(ax=ax, x='dt', y='flux', label='ventilator flux [l/min]', c=colors['flux'] , linewidth = linw)
+    #dfhd.plot(ax=ax, x='dt', y='pressure', label='ventilator pressure [cmH2O]', c=colors['pressure'], linewidth = linw)
+    dfhd.plot(ax=ax, x='dt', y='airway_pressure', label='ventilator airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
+    dfhd.plot(ax=ax, x='dt', y='flux',            label='ventilator flux            [l/min]', c=colors['flux'] )
     #dfhd.plot(ax=ax, x='dt', y='out', label='out')
     #dfhd.plot(ax=ax, x='dt', y='in', label='in')
 #   df.plot(ax=ax, x='dt', y='deriv_total_vol', label='deriv_total_vol [l/min]')
@@ -213,29 +232,98 @@ def process_run(objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, col
     #plt.plot(start_times, [0]*len(start_times), 'bo', label='real cycle start time')
     #df.plot(ax=ax, x='dt', y='reaction_time', label='reaction time [10 ms]', c=colors['reaction_time'])
     #plt.plot(   ,  100 *reaction_times,      label='reaction time ', marker='o', markersize=1, linewidth=0, c='red')
-    ax.legend(loc='lower left')
+    #ax.
+    for i,t in enumerate(start_times) :
+      ax.text(t, 0.5, "%i"%i, verticalalignment='bottom', horizontalalignment='center', color='red', fontsize=35)
 
+    ax.set_xlabel("Time [sec]")
+    ax.legend(loc='upper center', ncol=2)
+
+    """
     #a clean canavs with simulator only data
-    fig5,ax5 = plt.subplots()
-    ax5 = df.plot(x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['airway_pressure'], linewidth = linw)
+    #fig5,ax5 = plt.subplots()
+    ax5 = df.plot(x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['sim_airway_pressure'], linewidth = linw)
     #df.plot(ax=ax5, x='dt', y='muscle_pressure', label='muscle_pressure [cmH2O]', c=colors['muscle_pressure'], linewidth = linw)
-    df.plot(ax=ax5, x='dt', y='total_vol', label='total_vol [cmH2O]', c=colors['total_vol'], linewidth = linw)
+    df.plot(ax=ax5, x='dt', y='run', label='run index')
+    df.plot(ax=ax5, x='dt', y='total_vol', label='total_vol [l]', c=colors['total_vol'], linewidth = linw)
     df.plot(ax=ax5, x='dt', y='total_flow', label='total_flow [l/min]', c=colors['total_flow'], linewidth = linw)
-    df.plot(ax=ax5, x='dt', y='oxygen', label='oxygen [%]', c='red', linewidth = linw)
+    #df.plot(ax=ax5, x='dt', y='oxygen', label='oxygen [%]', c='red', linewidth = linw)
     plt.gcf().suptitle("simulator only data")
     plt.plot(start_times, [0]*len(start_times), 'bo', label='real cycle start time')
     ax5.legend(loc='lower left')
 
     #a clean canavs with ventilator only data
-    fig5b,ax5b = plt.subplots()
-    ax5b = dfhd.plot(ax=ax5b, x='dt', y='pressure', label='ventilator pressure [cmH2O]', c=colors['pressure'])
+    #fig5b,ax5b = plt.subplots()
+    ax5b = dfhd.plot( x='dt', y='pressure', label='ventilator pressure [cmH2O]', c=colors['pressure'])
+    dfhd.plot(ax=ax5b, x='dt', y='airway_pressure', label='ventilator airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
     dfhd.plot(ax=ax5b, x='dt', y='flux', label='ventilator flux [l/min]', c=colors['flux'])
+    #dfhd.plot(ax=ax5b, x='dt', y='in', label='in', c='green')
+    #dfhd.plot(ax=ax5b, x='dt', y='flow2nd_der', label='flow2nd_der?', c='pink')
+    #dfhd.plot(ax=ax5b, x='dt', y='out', label='out', c='red')
     plt.gcf().suptitle("ventilator only data")
     ax5b.legend(loc='lower left')
 
+
+    maxrunidx = len( df['run'].unique() ) - 1
+    fig8,ax8 = plt.subplots(2,2)
+    pad8 = ax8.flatten ()
+    for i in range (0, maxrunidx) :
+      #make a subset dataframe for simulator
+      dftmp = df[(df.run==(i+1)*10)]                    #select corresponding period
+      start_times_in_run = dftmp['start'].unique()      #array of start times in period
+      #select three central cycles in period
+      dftmp = dftmp[(dftmp.start==start_times_in_run[6])|(dftmp.start==start_times_in_run[7])|(dftmp.start==start_times_in_run[8]) ]
+      dftmp.plot(ax=pad8[i], x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['sim_airway_pressure'], linewidth = linw)
+
+      first_time_bin  = dftmp['dt'].iloc[0]
+      last_time_bin   = dftmp['dt'].iloc[len(dftmp)-1]
+      #make a subset dataframe for ventilator
+      dfvent = dfhd[ (dfhd['dt']>first_time_bin) & (dfhd['dt']<last_time_bin) ]
+      dfvent.plot(ax=pad8[i],  x='dt', y='pressure', label='ventilator pressure [cmH2O]', c=colors['pressure'], linewidth = linw)
+      dfvent.plot(ax=pad8[i],  x='dt', y='airway_pressure', label='ventilator airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
+      dfvent.plot(ax=pad8[i],  x='dt', y='flux', label='ventilator flux [l/min]', c=colors['flux'] , linewidth = linw)
+      dftmp.plot(ax=pad8[i], x='dt', y='total_flow', label='total_flow [l/min]', c=colors['total_flow'], linewidth = linw)
+      pad8[i].set_title("%s; PEEP%s; P_i%s; R%s"%(ttitles[i], meta[objname]["Peep"], meta[objname]["Pinspiratia"], meta[objname]["Rate respiratio"]))
+      #pad8[i].set_title('test')
     """
 
-    maxrunidx = np.max( df['run'].unique() )
+    """
+    three_start_times = [20,50,120]
+    for i in range (0, 3) :
+      fig11,ax11 = plt.subplots()
+      #make a subset dataframe for simulator
+      dftmp = df[ df['start']> three_start_times[i] ]
+      start_times_in_run = dftmp['start'].unique()      #array of start times in period
+      #select three central cycles in period
+      dftmp = dftmp[(dftmp.start>start_times_in_run[1])&(dftmp.start<start_times_in_run[5])]
+      dftmp.plot(ax=ax11, x='dt', y='airway_pressure',   label='SIM airway pressure [cmH2O]', c=colors['sim_airway_pressure'])
+      dftmp.plot(ax=ax11, x='dt', y='total_flow',        label='SIM flux            [l/min]', c=colors['total_flow'])
+
+      first_time_bin  = dftmp['dt'].iloc[0]
+      last_time_bin   = dftmp['dt'].iloc[len(dftmp)-1]
+      #make a subset dataframe for ventilator
+      dfvent = dfhd[ (dfhd['dt']>first_time_bin) & (dfhd['dt']<last_time_bin) ]
+      dfvent.plot(ax=ax11,  x='dt', y='airway_pressure', label='MVM airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
+      dfvent.plot(ax=ax11,  x='dt', y='flux',            label='MVM flux            [l/min]', c=colors['flux'])
+      #ax11.set_title("%s; PEEP%s; P_i%s; R%s"%(ttitles[i], meta[objname]["Peep"], meta[objname]["Pinspiratia"], meta[objname]["Rate respiratio"]))
+      ymin, ymax = ax11.get_ylim()
+      ax11.set_ylim(ymin*1.4, ymax*1.3)
+      ax11.legend(loc='upper center', ncol=2)
+      title1="R = %i [cmH2O/l/s]       C = %i [ml/cmH20]       PEEP = %s [cmH20]"%(resistances[i],
+        complinaces[i],
+        meta[objname]["Peep"]
+      )
+      title2="Inspiration Pressure = %s [cmH20]      Frequency = %s [breath/min]"%(
+        meta[objname]["Pinspiratia"],
+        meta[objname]["Rate respiratio"]
+      )
+      ax11.set_xlabel("Time [s]")
+      ax11.text(0.5, 0.08, title2, verticalalignment='bottom', horizontalalignment='center', transform=ax.transAxes, color='#7697c4', fontsize=20)
+      ax11.text(0.5, 0.026, title1, verticalalignment='bottom', horizontalalignment='center', transform=ax.transAxes, color='#7697c4', fontsize=20)
+      fig11.savefig("plots/%s_%i.png"%(objname,i))
+    """
+
+    """
     fig6,ax6 = plt.subplots(3,3)
     pad6 = ax6.flatten ()
     fig7,ax7 = plt.subplots(3,3)
@@ -292,11 +380,10 @@ def process_run(objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, col
     plt.show()
 
 
-
-
 if __name__ == '__main__':
   import argparse
   import matplotlib
+  import style
   matplotlib.rcParams['font.sans-serif'] = "Courier New"
   # Then, "ALWAYS use sans-serif fonts"
   matplotlib.rcParams['font.family'] = "sans-serif"
@@ -343,4 +430,4 @@ if __name__ == '__main__':
     print(f'will retrieve RWA and DTA simualtor data from {fullpath_rwa} and {fullpath_dta}')
 
     # run
-    process_run(objname=objname, input_mvm=fname, fullpath_rwa=fullpath_rwa, fullpath_dta=fullpath_dta, columns_rwa=columns_rwa, columns_dta=columns_dta, save=args.save, offset=args.offset,  ignore_sim=args.ignore_sim)
+    process_run(meta, objname=objname, input_mvm=fname, fullpath_rwa=fullpath_rwa, fullpath_dta=fullpath_dta, columns_rwa=columns_rwa, columns_dta=columns_dta, save=args.save, offset=args.offset,  ignore_sim=args.ignore_sim)
