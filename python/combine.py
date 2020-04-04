@@ -249,7 +249,7 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
   if args.plot:
     ttitles = ["R = 5; C = 50","R = 20; C = 20", "R = 10; C = 50"," "]
     resistances = [5,20,10]
-    complinaces = [50,20,50]
+    compliances = [50,20,50]
 
     colors = {  "muscle_pressure": "#009933"  , #green
       "sim_airway_pressure": "#cc3300" ,# red
@@ -349,17 +349,17 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
         PE = meta[objname]["Peep"]
         PI = meta[objname]["Pinspiratia"]
         RR = meta[objname]["Rate respiratio"]
-        print ("Looking for %s cycle, R=%s, C=%s, RR=%s, PEEP=%s, PINSP=%s"%(0,resistances[i],complinaces[i],RR,PE,PI) )
+        print ("Looking for %s cycle, R=%s, C=%s, RR=%s, PEEP=%s, PINSP=%s"%(0,resistances[i],compliances[i],RR,PE,PI) )
 
-        condition = "(( dfmhra['R']==resistances[i])  & (dfmhra['RR']==int(RR)) & (dfmhra['C']==complinaces[i]) & (dfmhra['PEEP']==int ( PE) ) & (dfmhra['PINSP']==int ( PI))"
+        condition = "(( dfmhra['R']==resistances[i])  & (dfmhra['RR']==int(RR)) & (dfmhra['C']==compliances[i]) & (dfmhra['PEEP']==int ( PE) ) & (dfmhra['PINSP']==int ( PI))"
 
-        my_selected_cycle_series =  mhracsv[( mhracsv['R']==resistances[i])  & (mhracsv['RR']==int(RR)) & (mhracsv['C']==complinaces[i]) & (mhracsv['PEEP']==int ( PE) ) & (mhracsv['PINSP']==int ( PI)) ]['CYCLE_START']
+        my_selected_cycle_series =  mhracsv[( mhracsv['R']==resistances[i])  & (mhracsv['RR']==int(RR)) & (mhracsv['C']==compliances[i]) & (mhracsv['PEEP']==int ( PE) ) & (mhracsv['PINSP']==int ( PI)) ]['CYCLE_START']
         print (len ( my_selected_cycle_series))
 
         if ( len( my_selected_cycle_series)==1 ) :
           my_selected_cycle = my_selected_cycle_series.iloc[0]
           print (my_selected_cycle)
-          mhracsv.loc[ ( mhracsv['R']==resistances[i])  & (mhracsv['RR']==int(RR)) & (mhracsv['C']==complinaces[i]) & (mhracsv['PEEP']==int ( PE) ) & (mhracsv['PINSP']==int ( PI))      ,    'plot'] = 1
+          mhracsv.loc[ ( mhracsv['R']==resistances[i])  & (mhracsv['RR']==int(RR)) & (mhracsv['C']==compliances[i]) & (mhracsv['PEEP']==int ( PE) ) & (mhracsv['PINSP']==int ( PI))      ,    'plot'] = 1
           three_start_times = [my_selected_cycle, my_selected_cycle+1 ,my_selected_cycle+2]
         else : skip_plot = True
 
@@ -390,7 +390,7 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
       ax11.set_ylim(ymin*1.4, ymax*1.5)
       ax11.legend(loc='upper center', ncol=2)
       title1="R = %i [cmH2O/l/s]       C = %i [ml/cmH20]       PEEP = %s [cmH20]"%(resistances[i],
-        complinaces[i],
+        compliances[i],
         meta[objname]["Peep"]
       )
       title2="Inspiration Pressure = %s [cmH20]      Frequency = %s [breath/min]"%(
@@ -462,7 +462,7 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
     #ax4.legend(loc='upper right')
 
 
-    #plt.show()
+    plt.show()
 
 
 if __name__ == '__main__':
