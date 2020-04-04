@@ -21,7 +21,7 @@ while on a Mac:
 Then, create the conda environment:
 ```
   conda config --add channels conda-forge
-  conda create --name piton3 root=6 python=3 mkl jupyter numpy scipy matplotlib scikit-learn h5py pandas pytables root_pandas pytables 
+  conda create --name piton3 root=6 python=3 mkl jupyter numpy scipy matplotlib scikit-learn h5py pandas pytables root_pandas pytables
 ```
 
 and activate it:
@@ -44,8 +44,8 @@ pip install --user pytables
 ## To run
 For example,
 ```
-python combine.py -p -f  $HOME/Dropbox/Waveforms/Data/Run_9_Apr_3 $HOME/Dropbox/Waveforms/Data/Run_9_Apr_3/VENTILATOR_CONTROLLED_FR12_PEEP5_PINSP_15_RATIO_OK.txt -l $HOME/Dropbox/Waveforms/Data/logbook.csv 
-py combine.py -p -f  ../Data/Run_9_Apr_3 ../Data/Run_9_Apr_3/VENTILATOR_CONTROLLED_FR* -m
+python combine.py -p -f  ../Data/Run_9_Apr_3 ../Data/Run_9_Apr_3/VENTILATOR_CONTROLLED_FR* -m -l $HOME/Dropbox/Waveforms/Data/logbook.csv
+python latexify.py ../Plots/Run\ 9\ Apr\ 3\ 2020/* > ../Plots/Run\ 9\ Apr\ 3\ 2020/summary.tex
 ```
 ## Repository structure
 
