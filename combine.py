@@ -79,7 +79,7 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
   ##################################
   imax1 = dfhd[ ( dfhd['dt']<14 ) ] ['flux'].idxmax()
   tmax1 = dfhd['dt'].iloc[imax1]
-  imax2 = df[  (df['dt']<16) & (df['dt']>0)   ] ['total_flow'].idxmax()
+  imax2 = df[  (df['dt']<7) & (df['dt']>0.2)   ] ['total_flow'].idxmax()
   tmax2 = df['dt'].iloc[imax2]
   shift  = tmax2 - tmax1
   print (tmax1, tmax2, shift)
@@ -291,6 +291,8 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
       dfvent.plot(ax=ax11,  x='dt', y='airway_pressure', label='ventilator airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
       dfvent.plot(ax=ax11,  x='dt', y='flux', label='ventilator flux [l/min]', c=colors['flux'] , linewidth = linw)
       ax11.set_title("%s; PEEP%s; P_i%s; R%s"%(ttitles[i], meta[objname]["Peep"], meta[objname]["Pinspiratia"], meta[objname]["Rate respiratio"]))
+      fig11.savefig("plots/%s_%i.pdf"%(objname,i))
+
       #pad8[i].set_title('test')
 
     """
