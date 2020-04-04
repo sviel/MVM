@@ -5,7 +5,7 @@ from matplotlib.pyplot import cm
 from matplotlib import colors
 import csv
 from scipy.interpolate import interp1d
-
+import matplotlib.patches as patches
 
 def read_meta_csv(fname, simformat='.rwa'):
   ''' get a dict containing run metadata '''
@@ -103,6 +103,20 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
   negative_times = dfhd[ ( dfhd['out']>50 ) ]['dt']    #array of negative times
   start_times = [ float (negative_times.iloc[i])  for i in range(0,len(negative_times)-1) if negative_times.iloc[i+1]-negative_times.iloc[i] > 0.1  or i == 0  ]   #select only the first negative per bunch
   print(start_times)
+
+  #volume calculation
+  dfhd['volume']  = 0
+  #np.where ( dfhd['out'] <50 , 0 , dfhd['flux'] )
+  for st in start_times :
+    dftmp = dfhd[ ( dfhd['dt']>st ) ]['dt']
+
+    for pf in positive_flow_times :
+      if pf > st and isFound == False:
+        isFound = True
+        flow_start_time.append(pf)
+    if isFound == False :
+      flow_start_time.append(0)
+
   ##################################
   #reaction time of system based on positive flow
   ##################################
@@ -287,7 +301,7 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
       #pad8[i].set_title('test')
     """
 
-    """
+
     three_start_times = [20,50,120]
     for i in range (0, 3) :
       fig11,ax11 = plt.subplots()
@@ -305,6 +319,7 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
       dfvent = dfhd[ (dfhd['dt']>first_time_bin) & (dfhd['dt']<last_time_bin) ]
       dfvent.plot(ax=ax11,  x='dt', y='airway_pressure', label='MVM airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
       dfvent.plot(ax=ax11,  x='dt', y='flux',            label='MVM flux            [l/min]', c=colors['flux'])
+      dfvent.plot(ax=ax11,  x='dt', y='out',             label='MVM out                    ', c='green')
       #ax11.set_title("%s; PEEP%s; P_i%s; R%s"%(ttitles[i], meta[objname]["Peep"], meta[objname]["Pinspiratia"], meta[objname]["Rate respiratio"]))
       ymin, ymax = ax11.get_ylim()
       ax11.set_ylim(ymin*1.4, ymax*1.3)
@@ -321,7 +336,10 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
       ax11.text(0.5, 0.08, title2, verticalalignment='bottom', horizontalalignment='center', transform=ax.transAxes, color='#7697c4', fontsize=20)
       ax11.text(0.5, 0.026, title1, verticalalignment='bottom', horizontalalignment='center', transform=ax.transAxes, color='#7697c4', fontsize=20)
       fig11.savefig("plots/%s_%i.png"%(objname,i))
-    """
+
+      nom_pressure = float(meta[objname]["Pinspiratia"])
+      xmin, xmax = ax11.get_xlim()
+      rect = patches.Rectangle((xmin,nom_pressure-2),xmax-xmin,4,linewidth=1,edgecolor='None',facecolor='b', alpha=0.2)
 
     """
     fig6,ax6 = plt.subplots(3,3)
@@ -384,6 +402,8 @@ if __name__ == '__main__':
   import argparse
   import matplotlib
   import style
+  #plt.subplots(dpi=72)
+
   matplotlib.rcParams['font.sans-serif'] = "Courier New"
   # Then, "ALWAYS use sans-serif fonts"
   matplotlib.rcParams['font.family'] = "sans-serif"
