@@ -176,7 +176,7 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
   df['run'] = -1
   cc = 1
   for i in range(0,len(starts)-1):
-    if starts[i+1] - starts[i] > 5:
+    if starts[i+1] - starts[i] > 25:
       df.loc[(df['dt'] >= starts[i]) & (df['dt'] < starts[i+1]), 'run'] = cc
       cc += 1
 
@@ -191,6 +191,8 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
 
   if args.plot:
     ttitles = ["R = 5; C = 50","R = 20; C = 20", "R = 10; C = 50"," "]
+    resistances = [5,20,10]
+    complinaces = [50,20,50]
 
     colors = {  "muscle_pressure": "#009933"  , #green
       "sim_airway_pressure": "#cc3300" ,# red
@@ -203,16 +205,20 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
     }
     linw = 2
 
-    ax = df.plot(x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['sim_airway_pressure'], linewidth = linw)
+    ax = df.plot(x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['sim_airway_pressure'])
+    df.plot(ax=ax, x='dt', y='total_flow',    label='total_flow      [l/min]', c=colors['total_flow'])
+    df.plot(ax=ax, x='dt', y='run', label='run index')
+    plt.plot(start_times, [0]*len(start_times), 'bo', label='real cycle start time')
+    for i,t in enumerate(start_times) :
+      ax.text(t, 0.5, "%i"%i, verticalalignment='bottom', horizontalalignment='center', transform=ax.transAxes, color='#7697c4', fontsize=15)
     #df.plot(ax=ax , x='dt', y='muscle_pressure', label='muscle_pressure [cmH2O]', c=colors['muscle_pressure'], linewidth = linw)
     #df.plot(ax=ax, x='dt', y='breath_no', label='breath_no', marker='.')
     #df.plot(ax=ax, x='dt', y='tracheal_pressure', label='tracheal_pressure')
-   #df.plot(ax=ax, x='dt', y='total_vol', label='total_vol')
+    #df.plot(ax=ax, x='dt', y='total_vol', label='total_vol')
     #plt.plot(df['dt'], df['total_vol']/10., label='total_vol [cl]')
-    df.plot(ax=ax, x='dt', y='total_flow', label='total_flow [l/min]', c=colors['total_flow'], linewidth = linw)
-    dfhd.plot(ax=ax, x='dt', y='pressure', label='ventilator pressure [cmH2O]', c=colors['pressure'], linewidth = linw)
+    #dfhd.plot(ax=ax, x='dt', y='pressure', label='ventilator pressure [cmH2O]', c=colors['pressure'], linewidth = linw)
     dfhd.plot(ax=ax, x='dt', y='airway_pressure', label='ventilator airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
-    dfhd.plot(ax=ax, x='dt', y='flux', label='ventilator flux [l/min]', c=colors['flux'] , linewidth = linw)
+    dfhd.plot(ax=ax, x='dt', y='flux',            label='ventilator flux            [l/min]', c=colors['flux'] )
     #dfhd.plot(ax=ax, x='dt', y='out', label='out')
     #dfhd.plot(ax=ax, x='dt', y='in', label='in')
 #   df.plot(ax=ax, x='dt', y='deriv_total_vol', label='deriv_total_vol [l/min]')
@@ -222,7 +228,9 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
     #plt.plot(start_times, [0]*len(start_times), 'bo', label='real cycle start time')
     #df.plot(ax=ax, x='dt', y='reaction_time', label='reaction time [10 ms]', c=colors['reaction_time'])
     #plt.plot(   ,  100 *reaction_times,      label='reaction time ', marker='o', markersize=1, linewidth=0, c='red')
-    ax.legend(loc='lower left')
+    #ax.
+    ax.set_xlabel("Time [sec]")
+    ax.legend(loc='upper center', ncol=2)
 
     """
     #a clean canavs with simulator only data
@@ -272,6 +280,7 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
       #pad8[i].set_title('test')
     """
 
+
     three_start_times = [20,50,120]
     for i in range (0, 3) :
       fig11,ax11 = plt.subplots()
@@ -280,20 +289,31 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
       start_times_in_run = dftmp['start'].unique()      #array of start times in period
       #select three central cycles in period
       dftmp = dftmp[(dftmp.start>start_times_in_run[1])&(dftmp.start<start_times_in_run[5])]
-      dftmp.plot(ax=ax11, x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['sim_airway_pressure'], linewidth = linw)
-      dftmp.plot(ax=ax11, x='dt', y='total_flow', label='total_flow [l/min]', c=colors['total_flow'], linewidth = linw)
+      dftmp.plot(ax=ax11, x='dt', y='airway_pressure',   label='SIM airway pressure [cmH2O]', c=colors['sim_airway_pressure'])
+      dftmp.plot(ax=ax11, x='dt', y='total_flow',        label='SIM flux            [l/min]', c=colors['total_flow'])
 
       first_time_bin  = dftmp['dt'].iloc[0]
       last_time_bin   = dftmp['dt'].iloc[len(dftmp)-1]
       #make a subset dataframe for ventilator
       dfvent = dfhd[ (dfhd['dt']>first_time_bin) & (dfhd['dt']<last_time_bin) ]
-      dfvent.plot(ax=ax11,  x='dt', y='pressure', label='ventilator pressure [cmH2O]', c=colors['pressure'], linewidth = linw)
-      dfvent.plot(ax=ax11,  x='dt', y='airway_pressure', label='ventilator airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
-      dfvent.plot(ax=ax11,  x='dt', y='flux', label='ventilator flux [l/min]', c=colors['flux'] , linewidth = linw)
-      ax11.set_title("%s; PEEP%s; P_i%s; R%s"%(ttitles[i], meta[objname]["Peep"], meta[objname]["Pinspiratia"], meta[objname]["Rate respiratio"]))
-      fig11.savefig("plots/%s_%i.pdf"%(objname,i))
-
-      #pad8[i].set_title('test')
+      dfvent.plot(ax=ax11,  x='dt', y='airway_pressure', label='MVM airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
+      dfvent.plot(ax=ax11,  x='dt', y='flux',            label='MVM flux            [l/min]', c=colors['flux'])
+      #ax11.set_title("%s; PEEP%s; P_i%s; R%s"%(ttitles[i], meta[objname]["Peep"], meta[objname]["Pinspiratia"], meta[objname]["Rate respiratio"]))
+      ymin, ymax = ax11.get_ylim()
+      ax11.set_ylim(ymin*1.4, ymax*1.3)
+      ax11.legend(loc='upper center', ncol=2)
+      title1="R = %i [cmH2O/l/s]       C = %i [ml/cmH20]       PEEP = %s [cmH20]"%(resistances[i],
+        complinaces[i],
+        meta[objname]["Peep"]
+      )
+      title2="Inspiration Pressure = %s [cmH20]      Frequency = %s [breath/min]"%(
+        meta[objname]["Pinspiratia"],
+        meta[objname]["Rate respiratio"]
+      )
+      ax11.set_xlabel("Time [s]")
+      ax11.text(0.5, 0.08, title2, verticalalignment='bottom', horizontalalignment='center', transform=ax.transAxes, color='#7697c4', fontsize=20)
+      ax11.text(0.5, 0.026, title1, verticalalignment='bottom', horizontalalignment='center', transform=ax.transAxes, color='#7697c4', fontsize=20)
+      fig11.savefig("plots/%s_%i.png"%(objname,i))
 
     """
     fig6,ax6 = plt.subplots(3,3)
@@ -352,11 +372,10 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
     plt.show()
 
 
-
-
 if __name__ == '__main__':
   import argparse
   import matplotlib
+  import style
   matplotlib.rcParams['font.sans-serif'] = "Courier New"
   # Then, "ALWAYS use sans-serif fonts"
   matplotlib.rcParams['font.family'] = "sans-serif"
