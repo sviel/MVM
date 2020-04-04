@@ -41,7 +41,11 @@ source /cvmfs/sft.cern.ch/lcg/views/LCG_96python3/x86_64-centos7-gcc8-opt/setup.
 pip install --user pytables
 ```
 
-
+## To run
+For example,
+```
+python combine.py -p -f  $HOME/Dropbox/Waveforms/Data/Run_9_Apr_3 $HOME/Dropbox/Waveforms/Data/Run_9_Apr_3/VENTILATOR_CONTROLLED_FR12_PEEP5_PINSP_15_RATIO_OK.txt -l $HOME/Dropbox/Waveforms/Data/logbook.csv 
+```
 ## Repository structure
 
 Folders:
