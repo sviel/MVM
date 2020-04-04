@@ -398,6 +398,7 @@ if __name__ == '__main__':
   parser.add_argument("-s", "--save", action='store_true', help="save HDF")
   parser.add_argument("-f", "--folder", type=str, help="path to input simulator data", default='.')
   parser.add_argument("-o", "--offset", type=float, help="offset between vent/sim", default='.0')
+  parser.add_argument("-l", "--logbook", type=str, help="logbook location", default='../Data/logbook.csv')
   args = parser.parse_args()
 
   columns_rwa = ['dt', 'airway_pressure', 'muscle_pressure', 'tracheal_pressure', 'chamber1_vol', 'chamber2_vol', 'total_vol', 'chamber1_pressure', 'chamber2_pressure', 'breath_fileno', 'aux1', 'aux2', 'oxygen']
@@ -418,7 +419,7 @@ if __name__ == '__main__':
   ]
 
   # read logbook with association SIM-MVM
-  meta = read_meta_csv('../Data/logbook.csv')
+  meta = read_meta_csv(args.logbook)
 
   for fname in args.input:
     # retrieve run name
