@@ -45,7 +45,7 @@ pip install --user pytables
 For example,
 ```
 python combine.py -p -f  ../Data/Run_9_Apr_3 ../Data/Run_9_Apr_3/VENTILATOR_CONTROLLED_FR* -m -l $HOME/Dropbox/Waveforms/Data/logbook.csv
-python latexify.py ../Plots/Run\ 9\ Apr\ 3\ 2020/* > ../Plots/Run\ 9\ Apr\ 3\ 2020/summary.tex
+python latexify.py ../Plots/Run\ 9\ Apr\ 3\ 2020/*txt*pdf > ../Plots/Run\ 9\ Apr\ 3\ 2020/summary.tex
 ```
 ## Repository structure
 
