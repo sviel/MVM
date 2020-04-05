@@ -103,8 +103,11 @@ if __name__ == '__main__':
   meta = read_meta_csv(args.logbook)
   mhra = read_mhra_csv(args.mhra)
 
-  resistances = [5,20,10]
-  compliances = [50,20,50]
+ #resistances = [5,20,10]
+ #compliances = [50,20,50]
+  resistances = [5,20,50]
+  compliances = [50,20,10]
+
 
   mhra = associate_plots(meta=meta, mhra=mhra, files=args.input, regexp=regexp, resistances=resistances, compliances=compliances)
 

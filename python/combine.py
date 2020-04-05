@@ -204,7 +204,6 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
     volumes_times2 = [0]
     for x in volumes_times: volumes_times2.append(x)
     volumes_times = volumes_times2
-    print ("AAAADSASASASA")
   dfhd['out_times'] = 0
   for s,v in zip(start_times, volumes_times):
     print (s,v)
@@ -248,13 +247,14 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
 
   if args.plot:
     ttitles = ["R = 5; C = 50","R = 20; C = 20", "R = 10; C = 50"," "]
-    resistances = [5,20,10]
-    compliances = [50,20,50]
+    resistances = [5,20,50]
+    compliances = [50,20,10]
 
     colors = {  "muscle_pressure": "#009933"  , #green
       "sim_airway_pressure": "#cc3300" ,# red
       "total_flow":"#ffb84d" , #orange
-      "total_vol":"#009933" , #orange
+      "tidal_volume":"#ddccff" , #orange
+      "total_vol":"pink" , #
       "reaction_time" : "#999999", #
       "pressure" : "black" , #  blue
       "vent_airway_pressure": "#003399" ,# blue
@@ -287,7 +287,7 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
     #plt.plot(   ,  100 *reaction_times,      label='reaction time ', marker='o', markersize=1, linewidth=0, c='red')
     #ax.
     for i,t in enumerate(start_times) :
-      ax.text(t, 0.5, "%i"%i, verticalalignment='bottom', horizontalalignment='center', color='red', fontsize=35)
+      ax.text(t, 0.5, "%i"%i, verticalalignment='bottom', horizontalalignment='center', color='red', fontsize=14)
 
     ax.set_xlabel("Time [sec]")
     ax.legend(loc='upper center', ncol=2)
@@ -340,7 +340,7 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
       #pad8[i].set_title('test')
     """
 
-    three_start_times = [20,50,120]
+    three_start_times = [5,20,32]
 
     for i in range (0, 3) :
       skip_plot = False ;
@@ -360,28 +360,35 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
           my_selected_cycle = my_selected_cycle_series.iloc[0]
           print (my_selected_cycle)
           mhracsv.loc[ ( mhracsv['R']==resistances[i])  & (mhracsv['RR']==int(RR)) & (mhracsv['C']==compliances[i]) & (mhracsv['PEEP']==int ( PE) ) & (mhracsv['PINSP']==int ( PI))      ,    'plot'] = 1
-          three_start_times = [my_selected_cycle, my_selected_cycle+1 ,my_selected_cycle+2]
+          three_start_times = [ my_selected_cycle , my_selected_cycle , my_selected_cycle ]
         else : skip_plot = True
 
       if skip_plot == True : continue
 
+      print ("three_start_times: ",  three_start_times )
+
       fig11,ax11 = plt.subplots()
 
       #make a subset dataframe for simulator
-      dftmp = df[ df['start']> three_start_times[i] ]
+      dftmp = df[ df['start'] >= start_times[three_start_times[i]] ]
       start_times_in_run = dftmp['start'].unique()      #array of start times in period
-      dftmp = dftmp[(dftmp.start>start_times_in_run[0])&(dftmp.start<start_times_in_run[4])]
+
+      print ("first_start_time: ",  three_start_times[i] , "from ", start_times_in_run)
+      dftmp = dftmp[ (dftmp.start >= start_times_in_run[0]) & (dftmp.start < start_times_in_run[3]) ]
       #select three central cycles in period
       first_time_bin  = dftmp['dt'].iloc[0]
       last_time_bin   = dftmp['dt'].iloc[len(dftmp)-1]
       #make a subset dataframe for ventilator
       dfvent = dfhd[ (dfhd['dt']>first_time_bin) & (dfhd['dt']<last_time_bin) ]
 
-      dfvent.plot(ax=ax11,  x='dt', y='tidal_volume',    label='MVM tidal volume       [cl]', c='pink')
-      dfvent.plot(ax=ax11,  x='dt', y='airway_pressure', label='MVM airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
-      dfvent.plot(ax=ax11,  x='dt', y='flux',            label='MVM flux            [l/min]', c=colors['flux'])
-      dftmp.plot(ax=ax11, x='dt', y='airway_pressure',   label='SIM airway pressure [cmH2O]', c=colors['sim_airway_pressure'])
+      dftmp['total_vol'] -= np.min(dftmp['total_vol'])
+      dftmp.plot(ax=ax11, x='dt', y='total_vol',         label='SIM tidal volume       [cl]', c=colors['total_vol'] , alpha=0.4)
       dftmp.plot(ax=ax11, x='dt', y='total_flow',        label='SIM flux            [l/min]', c=colors['total_flow'])
+      dftmp.plot(ax=ax11, x='dt', y='airway_pressure',   label='SIM airway pressure [cmH2O]', c=colors['sim_airway_pressure'])
+
+      dfvent.plot(ax=ax11,  x='dt', y='tidal_volume',    label='MVM tidal volume       [cl]', c=colors['tidal_volume'])
+      dfvent.plot(ax=ax11,  x='dt', y='flux',            label='MVM flux            [l/min]', c=colors['flux'])
+      dfvent.plot(ax=ax11,  x='dt', y='airway_pressure', label='MVM airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
       #dftmp.plot(ax=ax11, x='dt', y='total_vol',         label='SIM volume             [dl]', c=colors['total_vol'] , linestyle='--')
       #dfvent.plot(ax=ax11,  x='dt', y='out',             label='MVM out                    ', c='green')
       #dfvent.plot(ax=ax11, x='dt', y='volume',           label='vol                [ml]', c='green')
@@ -397,16 +404,20 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
         meta[objname]["Pinspiratia"],
         meta[objname]["Rate respiratio"]
       )
+
+
       ax11.set_xlabel("Time [s]")
-      ax11.text(0.5, 0.08, title2, verticalalignment='bottom', horizontalalignment='center', transform=ax.transAxes, color='#7697c4', fontsize=20)
-      ax11.text(0.5, 0.026, title1, verticalalignment='bottom', horizontalalignment='center', transform=ax.transAxes, color='#7697c4', fontsize=20)
-      nom_pressure = float(meta[objname]["Pinspiratia"])
+
       xmin, xmax = ax11.get_xlim()
-      rect = patches.Rectangle((xmin,nom_pressure-2),xmax-xmin,4,edgecolor='None',facecolor='b', alpha=0.2)
+      ymin, ymax = ax11.get_ylim()
+      ax11.text((xmax-xmin)/2.+xmin, 0.08*(ymax-ymin) + ymin,   title2, verticalalignment='bottom', horizontalalignment='center', color='#7697c4')
+      ax11.text((xmax-xmin)/2.+xmin, 0.026*(ymax-ymin) + ymin,  title1, verticalalignment='bottom', horizontalalignment='center', color='#7697c4')
+      nom_pressure = float(meta[objname]["Pinspiratia"])
+      rect = patches.Rectangle((xmin,nom_pressure-2),xmax-xmin,4,edgecolor='None',facecolor='green', alpha=0.2)
+      ax11.add_patch(rect)
       print ("nominal insp press", nom_pressure, xmin, xmax)
 
-
-      fig11.savefig("plots/%s_%i.png"%(objname,i))
+      fig11.savefig("plots_tmp3/%s_%i.pdf"%(objname,i))
 
     """
     fig6,ax6 = plt.subplots(3,3)
@@ -462,7 +473,7 @@ def process_run(meta, objname,input_mvm, fullpath_rwa, fullpath_dta, columns_rwa
     #ax4.legend(loc='upper right')
 
 
-    plt.show()
+    #plt.show()
 
 
 if __name__ == '__main__':
@@ -527,4 +538,4 @@ if __name__ == '__main__':
     process_run(meta, objname=objname, input_mvm=fname, fullpath_rwa=fullpath_rwa, fullpath_dta=fullpath_dta, columns_rwa=columns_rwa, columns_dta=columns_dta, save=args.save, offset=args.offset,  ignore_sim=args.ignore_sim, mhracsv=mhra)
 
   if args.mhra==True :
-    mhra.to_csv("mhra.out.csv")
+    mhra.to_csv("mhra.out_new.csv")
