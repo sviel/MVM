@@ -44,7 +44,7 @@ pip install --user pytables
 ## To run
 For example,
 ```
-python combine.py -p -f  ../Data/Run_9_Apr_3 ../Data/Run_9_Apr_3/VENTILATOR_CONTROLLED_FR* -m -l $HOME/Dropbox/Waveforms/Data/logbook.csv
+python combine.py -p -f  ../Data/Run_9_Apr_3 ../Data/Run_9_Apr_3/VENTILATOR_CONTROLLED_FR* -m -l $HOME/Dropbox/Waveforms/Data/logbook.csv --mhra-path=$HOME/Dropbox/Waveforms/Data/logbook.MHRA.csv
 python latexify.py ../Plots/Run\ 9\ Apr\ 3\ 2020/*txt*pdf > ../Plots/Run\ 9\ Apr\ 3\ 2020/summary.tex
 ```
 ## Repository structure
