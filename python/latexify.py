@@ -1,30 +1,30 @@
 ''' Put plots together in LaTeX documents '''
 
 import re
-from combine import read_meta_csv, read_mhra_csv
+from db import *
 
-def associate_plots(meta, mhra, files, resistances, compliances, regexp):
+def associate_plots(meta, files, regexp, table_entry='MVM_filename'):
   # loop over available files
-  mhra['fname'] = ''
+  meta['fname'] = ''
 
   for fname in files:
     m = regexp.match(fname)
     if m:
+      # TODO: we are ignoring the plotset info!
       plotset = int(m.group('plotset'))
-      this_meta = meta[m.group('datafile')]
-      RR = int(this_meta['Rate respiratio'])
-      PE = int(this_meta['Peep'])
-      PI = int(this_meta['Pinspiratia'])
-      sel = (mhra['R'] == resistances[plotset]) & (mhra['RR'] == RR) & (mhra['C'] == compliances[plotset]) & (mhra['PEEP'] == PE) & (mhra['PINSP'] == PI)
-      
-      mhra.loc[sel, 'fname'] = fname
-      mhra.loc[sel, 'plot'] = 1
+      if plotset != 0:
+        raise RuntimeError('Did plot naming conventions change? check and fix the code')
+      datafile = f'{m.group("datafile")}.txt'
+      sel = meta[table_entry]==datafile # we select the row corresponding to this datafile
+
+      meta.loc[sel, 'fname'] = fname
+      meta.loc[sel, 'plot'] = 1
     else:
-      raise RuntimeError(f'Unknown MVM file {fname}')
+      raise RuntimeError(f'Unable to parse the name of the MVM file {fname}')
 
-  return mhra
+  return meta
 
-def print_latex(mhra, title, rows=3, columns=2):
+def print_latex(meta, title, figure_caption="", rows=3, columns=2):
   toprint = []
 
   toprint.append(r'''
@@ -42,14 +42,14 @@ def print_latex(mhra, title, rows=3, columns=2):
     \maketitle
   ''')
 
-  for i, row in mhra.iterrows():
+  for i, row in meta.iterrows():
     newfig = i % (rows * columns) == 0
     fname_form = row["fname"].split('/')[-1] # relative path to current dir
 
     if newfig:
       if i != 0:
-        toprint.append(r'''  \caption{I:E=1:2, $O_2$=90-100}
-          \end{figure}
+        toprint.append(r'''  \caption{''' + figure_caption + r'''}
+        \end{figure}
         ''')
       toprint.append(r'''
       \begin{figure}[h!]
@@ -72,13 +72,13 @@ def print_latex(mhra, title, rows=3, columns=2):
       )
       toprint.append(f'{{Missing test}}\n')
     toprint.append(r'''      \caption{''')
-    toprint.append(f'%%% $C=\\SI{{{row["C"]}}}{{ml/cmH_{2}O}}$, $R=\\SI{{{row["R"]}}}{{cmH_{2}O/l/s}}$, $p=\\SI{{{row["PINSP"]}}}{{cmH_{2}O}}$, r=$\\SI{{{row["RR"]}}}{{bpm}}$,$I:E=1:2$,$O_2=90-100$,$PEEP=\\SI{{{row["PEEP"]}}}{{cmH_{2}O}}$}}\n')
-    toprint.append(f'%%%C={row["C"]}, R={row["R"]}, p={row["PINSP"]}, r={row["RR"]}, I:E=1:2, $O_2$=90-100, PEEP={row["PEEP"]}}}\n')
-    toprint.append(f'C={row["C"]}, R={row["R"]}, p={row["PINSP"]}, r={row["RR"]}, PEEP={row["PEEP"]}}}')
+    toprint.append(f'%%% $TV=\\SI{{{row["TV"]}}}{{ml}}$, $C=\\SI{{{row["C"]}}}{{ml/cmH_{2}O}}$, $R=\\SI{{{row["R"]}}}{{cmH_{2}O/l/s}}$, $p=\\SI{{{row["plateau"]}}}{{cmH_{2}O}}$, r=$\\SI{{{row["rate"]}}}{{bpm}}$,$I:E={row["ratio"]}$, $O_2={row["O2"]}$, $PEEP=\\SI{{{row["PEEP"]}}}{{cmH_{2}O}}$}}\n')
+    toprint.append(f'%%%TV={row["TV"]}, C={row["C"]}, R={row["R"]}, p={row["plateau"]}, r={row["rate"]}, I:E={row["ratio"]}, $O_2={row["O2"]}$, PEEP={row["PEEP"]}}}\n')
+    toprint.append(f'TV={row["TV"]}, C={row["C"]}, R={row["R"]}, p={row["plateau"]}, r={row["rate"]}, PEEP={row["PEEP"]}}}, I:E={row["ratio"]}')
     toprint.append(r'''
       \end{subfigure}'''
     )
-  toprint.append(r'''  \caption{I:E=1:2, $O_2$=90-100}
+  toprint.append(r'''  \caption{''' + figure_caption + r'''}
     \end{figure}
   ''')
 
@@ -95,20 +95,14 @@ if __name__ == '__main__':
 
   parser = argparse.ArgumentParser(description='present plots in LaTeX')
   parser.add_argument('input', help='plots to include', nargs='+')
-  parser.add_argument('-l', '--logbook', type=str, help='logbook location', default='../Data/logbook.csv')
-  parser.add_argument('-m', '--mhra', type=str, help='MHRA logbook location', default='../Data/logbook.MHRA.csv')
+  parser.add_argument("--db-google-id", type=str, help="name of the Google spreadsheet ID for metadata", default="1aQjGTREc9e7ScwrTQEqHD2gmRy9LhDiVatWznZJdlqM")
+  parser.add_argument("--db-range-name", type=str, help="name of the Google spreadsheet range for metadata", default="20200407 ISO!A2:AZ")
   args = parser.parse_args()
 
-  regexp = re.compile('.*/(?P<datafile>\w+\.txt)_(?P<plotset>\d+)\..*') # accept PNG and PDF
-  meta = read_meta_csv(args.logbook)
-  mhra = read_mhra_csv(args.mhra)
+  test_data = read_online_spreadsheet(spreadsheet_id=args.db_google_id, range_name=args.db_range_name)
 
- #resistances = [5,20,10]
- #compliances = [50,20,50]
-  resistances = [5,20,50]
-  compliances = [50,20,10]
+  regexp = re.compile('.*/(?P<datafile>.+)_(?P<plotset>\d+)\.\w\w\w') # accept PNG and PDF
 
+  test_data = associate_plots(meta=test_data, files=args.input, regexp=regexp, table_entry='MVM_filename')
 
-  mhra = associate_plots(meta=meta, mhra=mhra, files=args.input, regexp=regexp, resistances=resistances, compliances=compliances)
-
-  print_latex(mhra, 'Plots from Apr 3, 2020')
+  print_latex(test_data, title='Plots from Apr 7, 2020', figure_caption='$O_2=21\\%$')
