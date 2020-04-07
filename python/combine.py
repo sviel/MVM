@@ -188,7 +188,7 @@ def add_run_info(df, dist=25):
 
   df['run'] = df['run']*10
   
-def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, columns_dta, manual_offset=0., save=False, ignore_sim=False, mhracsv=None, pressure_offset=0):
+def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, columns_dta, manual_offset=0., save=False, ignore_sim=False, mhracsv=None, pressure_offset=0, mvm_sep=' -> '):
   # retrieve simulator data
   if not ignore_sim:
     df = get_simulator_df(fullpath_rwa, fullpath_dta, columns_rwa, columns_dta)
@@ -196,7 +196,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     print ("I am ignoring the simulator")
 
   # retrieve MVM data
-  dfhd = get_mvm_df(fname=input_mvm)
+  dfhd = get_mvm_df(fname=input_mvm, sep=mvm_sep)
   add_timestamp(dfhd)
 
   # apply corrections
@@ -223,6 +223,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
 
   # add info
   add_cycle_info(sim=df, mvm=dfhd, start_times=start_times, reaction_times=reaction_times)
+  
 
   ##################################
   # chunks
@@ -361,7 +362,8 @@ if __name__ == '__main__':
   parser.add_argument("-f", "--filename", type=str, help="single file to be processed", default='.')
   parser.add_argument("-o", "--offset", type=float, help="offset between vent/sim", default='.0')
   parser.add_argument("--db-google-id", type=str, help="name of the Google spreadsheet ID for metadata", default="1aQjGTREc9e7ScwrTQEqHD2gmRy9LhDiVatWznZJdlqM")
-  parser.add_argument("--db-range-name", type=str, help="name of the Google spreadsheet range for metadata", default="20200403 MHRA!A2:Z")
+  parser.add_argument("--db-range-name", type=str, help="name of the Google spreadsheet range for metadata", default="20200407 ISO!A2:AZ")
+  parser.add_argument("--mvm-sep", type=str, help="separator between datetime and the rest in the MVM filename", default=",")
   args = parser.parse_args()
 
   columns_rwa = ['dt', 'airway_pressure', 'muscle_pressure', 'tracheal_pressure', 'chamber1_vol', 'chamber2_vol', 'total_vol', 'chamber1_pressure', 'chamber2_pressure', 'breath_fileno', 'aux1', 'aux2', 'oxygen']
@@ -388,9 +390,11 @@ if __name__ == '__main__':
 
   #if option -n, select only one test
   if len ( args.filename )  > 2 :
-    reduced_filename = args.filename.split("/")[-1].split(".")[0]
-    print ( "Selcting only: " ,  reduced_filename  )
-    df_spreadsheet = df_spreadsheet[ ( df_spreadsheet["MVM_filename"] == reduced_filename )  ]
+    unreduced_filename = args.filename.split("/")[-1]
+    reduced_filename = '.'.join(unreduced_filename.split('.')[:-1])
+
+    print ( "Selecting only: " ,  reduced_filename  )
+    df_spreadsheet = df_spreadsheet[ ( df_spreadsheet["MVM_filename"] == unreduced_filename )  ]
 
   filenames = df_spreadsheet['MVM_filename'].unique()
 
@@ -408,7 +412,7 @@ if __name__ == '__main__':
 
     #compute the file location: local folder to the data repository + compaign folder + filename
     fname = f'{args.input}/{meta[objname]["Campaign"]}/{meta[objname]["MVM_filename"]}'
-    if not ".txt" in fname:
+    if not fname.endswith(".txt"):
       fname = f'{fname}.txt'
 
     # determine RWA and DTA data locations
@@ -422,7 +426,7 @@ if __name__ == '__main__':
     print(f'will retrieve RWA and DTA simulator data from {fullpath_rwa} and {fullpath_dta}')
 
     # run
-    process_run(meta, objname=objname, input_mvm=fname, fullpath_rwa=fullpath_rwa, fullpath_dta=fullpath_dta, columns_rwa=columns_rwa, columns_dta=columns_dta, save=args.save, manual_offset=args.offset,  ignore_sim=args.ignore_sim)
+    process_run(meta, objname=objname, input_mvm=fname, fullpath_rwa=fullpath_rwa, fullpath_dta=fullpath_dta, columns_rwa=columns_rwa, columns_dta=columns_dta, save=args.save, manual_offset=args.offset,  ignore_sim=args.ignore_sim, mvm_sep=args.mvm_sep)
     if args.plot:
       if ( len (filenames) < 2 ) :
         plt.show()
