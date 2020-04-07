@@ -104,7 +104,23 @@ def add_chunk_info(df):
   for i,r in cycle.iterrows():
     df.loc[df.start == i, 'max_pressure'] = r.total_flow
 
-def add_clinical_values(df, start_times):
+def add_clinical_values (df) :
+  """Add for reference the measurement of "TRUE" clinical values as measured using the simulator"""
+
+  #true resistance
+  df['delta_pout_pin']        = df['airway_pressure'] - df['chamber1_pressure']
+  df['delta_vol']             = ( df['chamber1_vol'] + df['chamber2_vol'] ) .diff()
+  df['airway_resistance']     = df['delta_pout_pin'] / df['delta_vol']
+  df.loc[ (abs(df.airway_resistance)>250) | (df.airway_resistance<0) ,"airway_resistance"] = 0
+
+  #true compliance
+  df['deltapin']     =  df['chamber1_pressure'].diff()
+  df['delta_volin']  =  ( df['chamber1_vol']  + df['chamber2_vol']) .diff()
+  df['compliance']   =  df['delta_volin']/df['deltapin']
+  df.loc[abs(df.compliance)>100,"compliance"] = 0
+
+
+def measure_clinical_values(df, start_times):
   ''' Compute tidal volume and other clinical quantities for MVM data '''
   deltaT = get_deltat(df)
 
@@ -124,6 +140,7 @@ def add_clinical_values(df, start_times):
   df['cycle_PEEP'] = 0
   df['cycle_Cdyn'] = 0
   df['cycle_Cstat'] = 0
+
   for s,v in zip(start_times, inspiration_end_times):
     this_inspiration = (df.dt>s) & (df.dt<v) # all samples
     first_sample = (df.dt == s) # start of inspiration
@@ -133,7 +150,7 @@ def add_clinical_values(df, start_times):
 
 #   print(df[this_inspiration]['timestamp'], df[this_inspiration]['dt'], df[this_inspiration]['pressure'].max())
     print(df[last_sample]['timestamp'], df[last_sample]['dt'], df[last_sample]['pressure'])
-    df.loc[this_inspiration, 'cycle_tidal_volume'] = df[this_inspiration]['flux'].cumsum() * deltaT/60. * 100
+    df.loc[this_inspiration, 'cycle_tidal_volume'] = df[this_inspiration]['flux'].sum() * deltaT/60. * 100
     df.loc[this_inspiration, 'cycle_peak_pressure'] = df[this_inspiration]['pressure'].max()
     df.loc[this_inspiration, 'cycle_plateau_pressure'] = df[last_sample]['pressure']
     df.loc[this_inspiration, 'cycle_PEEP'] = df[first_sample]['pressure']
@@ -151,23 +168,6 @@ def add_clinical_values(df, start_times):
   # set inspiration-only variables to zero outside the inspiratory phase
   df['tidal_volume'] *= df['is_inspiration']
 
-
-  print(df.head())
-  print('test:', df['tidal_volume'].max())
-  print('TV:', df['cycle_tidal_volume'].unique(), df['cycle_tidal_volume'].mean())
-  print('Ppeak:', df['cycle_peak_pressure'].unique(), df['cycle_peak_pressure'].mean())
-  print('Pplateau:', df['cycle_plateau_pressure'].unique(), df['cycle_plateau_pressure'].mean())
-  print('PEEP:', df['cycle_PEEP'].unique(), df['cycle_PEEP'].mean())
-
-# plt.plot(df['dt'], df['out'], label='control out')
-# plt.plot(df['dt'], df['pressure'], label='pressure')
-# plt.plot(df['dt'], df['is_inspiration'], label='is_inspiration')
-# plt.plot(df['dt'], df['cycle_tidal_volume'], label='cycle_tidal_volume')
-# plt.plot(df['dt'], df['cycle_PEEP'], label='cycle_PEEP')
-# plt.plot(df['dt'], df['tidal_volume'], label='tidal_volume')
-# plt.legend()
-# plt.show()
-# raise RuntimeError('Valerio')
 
 def add_run_info(df, dist=25):
   ''' Add run info based on max pressure '''
@@ -187,7 +187,7 @@ def add_run_info(df, dist=25):
       cc += 1
 
   df['run'] = df['run']*10
-  
+
 def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rwa, columns_dta, manual_offset=0., save=False, ignore_sim=False, mhracsv=None, pressure_offset=0, mvm_sep=' -> '):
   # retrieve simulator data
   if not ignore_sim:
@@ -223,7 +223,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
 
   # add info
   add_cycle_info(sim=df, mvm=dfhd, start_times=start_times, reaction_times=reaction_times)
-  
+
 
   ##################################
   # chunks
@@ -232,7 +232,32 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
   add_chunk_info(df)
 
   # compute tidal volume etc
-  add_clinical_values(dfhd, start_times=start_times) 
+  add_clinical_values(df)
+  measure_clinical_values(dfhd, start_times=start_times)
+
+  print('test:', dfhd['tidal_volume'].max())
+  print('TV:', dfhd['cycle_tidal_volume'].unique(), dfhd['cycle_tidal_volume'].mean())
+  print('Ppeak:', dfhd['cycle_peak_pressure'].unique(), dfhd['cycle_peak_pressure'].mean())
+  print('Pplateau:', dfhd['cycle_plateau_pressure'].unique(), dfhd['cycle_plateau_pressure'].mean())
+  print('PEEP:', dfhd['cycle_PEEP'].unique(), dfhd['cycle_PEEP'].mean())
+
+  #plt.plot(dfhd['dt'], dfhd['out'], label='control out')
+  plt.plot(dfhd['dt'], dfhd['pressure'], label='pressure')
+  plt.plot(dfhd['dt'], dfhd['is_inspiration'], label='is_inspiration')
+  #plt.plot(dfhd['dt'], dfhd['cycle_tidal_volume'], label='cycle_tidal_volume')
+  #plt.plot(dfhd['dt'], dfhd['cycle_PEEP'], label='cycle_PEEP')
+  plt.plot(dfhd['dt'], dfhd['tidal_volume'], label='tidal_volume')
+
+  #plt.plot(df['dt'], df['tracheal_pressure'], label='true tracheal_pressure')
+  #plt.plot(df['dt'], df['airway_pressure'], label='true airway_pressure')
+  #plt.plot(df['dt'], df['chamber1_pressure'], label='true ch1_pressure')
+  #plt.plot(df['dt'], df['chamber2_pressure'], label='true ch2_pressure')
+  plt.plot(df['dt'], df['airway_resistance'], label='true airway_resistance')
+  plt.plot(df['dt'], df['compliance'], label='true compliance')
+
+  plt.legend()
+  plt.show()
+  raise RuntimeError('Valerio')
 
   ##################################
   # find runs
@@ -363,7 +388,7 @@ if __name__ == '__main__':
   parser.add_argument("-o", "--offset", type=float, help="offset between vent/sim", default='.0')
   parser.add_argument("--db-google-id", type=str, help="name of the Google spreadsheet ID for metadata", default="1aQjGTREc9e7ScwrTQEqHD2gmRy9LhDiVatWznZJdlqM")
   parser.add_argument("--db-range-name", type=str, help="name of the Google spreadsheet range for metadata", default="20200407 ISO!A2:AZ")
-  parser.add_argument("--mvm-sep", type=str, help="separator between datetime and the rest in the MVM filename", default=",")
+  parser.add_argument("--mvm-sep", type=str, help="separator between datetime and the rest in the MVM filename", default=" -> ")
   args = parser.parse_args()
 
   columns_rwa = ['dt', 'airway_pressure', 'muscle_pressure', 'tracheal_pressure', 'chamber1_vol', 'chamber2_vol', 'total_vol', 'chamber1_pressure', 'chamber2_pressure', 'breath_fileno', 'aux1', 'aux2', 'oxygen']
