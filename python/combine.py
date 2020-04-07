@@ -257,7 +257,9 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
 
   plt.legend()
   plt.show()
-  raise RuntimeError('Valerio')
+  print("Debugging ended - Press enter to continue to plots")
+  input()
+#  raise RuntimeError('Valerio')
 
   ##################################
   # find runs
