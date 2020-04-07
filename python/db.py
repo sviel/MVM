@@ -23,7 +23,7 @@ def gsheet2df(gsheet):
     all_data = []
     for col_id, col_name in enumerate(header):
       column_data = []
-      for row in values:
+      for irow, row in enumerate(values):
         column_data.append(row[col_id])
       ds = pd.Series(data=column_data, name=col_name)
       all_data.append(ds)
