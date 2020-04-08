@@ -11,25 +11,26 @@ def get_table(df):
   for i, row in df.iterrows():
     what = [
       # ISO test details
-      ('TV [ml]', f'{float(row["Tidal Volume"]):.0f}'),
-      ('C [ml/cmH2O]', f'{float(row["Compliance"]):.0f}'),
-      ('R [cmH2O/l/s]', f'{float(row["Resistance"]):.0f}'),
-      ('rate [breaths/min]', f'{float(row["Rate respiratio"]):.0f}'),
-      ('I:E', f'{float(row["I:E"]):.0f}'),
-      ('TV [ml]', f'{float(row["Pinspiratia"]):.0f}'),
-      ('O2', f'21\%'), # TODO add oxygen to json
-      ('BAP [cmH2O]', f'{float(row["Peep"]):.0f}'),
+      ('TV [ml]', f'${float(row["Tidal Volume"]):.0f}$'),
+      ('C [ml/cmH2O]', f'${float(row["Compliance"]):.0f}$'),
+      ('R [cmH2O/l/s]', f'${float(row["Resistance"]):.0f}$'),
+      ('rate [breaths/min]', f'${float(row["Rate respiratio"]):.0f}$'),
+      ('I:E', f'${float(row["I:E"]):.0f}$'),
+      ('TV [ml]', f'${float(row["Pinspiratia"]):.0f}$'),
+      ('O2', f'$21\%$'), # TODO add oxygen to json
+      ('BAP [cmH2O]', f'${float(row["Peep"]):.0f}$'),
       # SIM measurements
-      ('simulator TV [ml]', f'{float(row["simulator_volume_ml"]):.0f}'),
-      ('simulator $P_{plateau}$ [cmH2O]', f'{float(row["simulator_plateau"]):.0f}'),
+      ('simulator TV [ml]', f'${float(row["simulator_volume_ml"]):.0f}$'),
+      ('simulator $P_{plateau}$ [cmH2O]', f'${float(row["simulator_plateau"]):.0f}$'),
       # MVM measurements
-      ('measured TV [ml]', f'{float(row["mean_volume_ml"]):.0f} \pm {float(row["rms_volume_ml"]):.0f}'),
-      ('measured $P_{plateau}$ [cmH2O]', f'{float(row["mean_plateau"]):.0f} \pm {float(row["rms_plateau"]):.0f}'),
-      ('measured $P_{peak}$ [cmH2O]', f'{float(row["mean_peak"]):.0f} \pm {float(row["rms_peak"]):.0f}'),
-      ('measured PEEP [cmH2O]', f'{float(row["mean_peep"]):.0f} \pm {float(row["rms_peep"]):.0f}'),
+      ('measured TV [ml]', f'${float(row["mean_volume_ml"]):.0f} \pm {float(row["rms_volume_ml"]):.0f}$'),
+      ('measured $P_{plateau}$ [cmH2O]', f'${float(row["mean_plateau"]):.0f} \pm {float(row["rms_plateau"]):.0f}$'),
+      ('measured $P_{peak}$ [cmH2O]', f'${float(row["mean_peak"]):.0f} \pm {float(row["rms_peak"]):.0f}$'),
+      ('measured PEEP [cmH2O]', f'${float(row["mean_peep"]):.0f} \pm {float(row["rms_peep"]):.0f}$'),
     ]
 
     if i == 0:
+      print('c'*len(what))
       columns = [ title for title, _ in what ]
       toprint.append(' & '.join(columns))
       toprint[-1] = f'{toprint[-1]}\\hline\\\\' # horizontal bar and new line in LaTeX
@@ -38,12 +39,11 @@ def get_table(df):
     toprint.append(' & '.join(content))
     toprint[-1] = f'{toprint[-1]}\\\\' # new line in LaTeX
 
-  print('\n'.join(toprint))
+  output = '\n'.join(toprint)
+  print(output)
+  return output
 
-
-
-
-def process_files(files):
+def process_files(files, output_dir):
   dfs = []
   for i, fname in enumerate(files):
     dfs.append(pd.DataFrame(json.loads(open(fname).read()), index=[i]))
@@ -60,8 +60,12 @@ def process_files(files):
  #      'mean_volume', 'rms_peak', 'rms_peep', 'rms_plateau', 'rms_volume',
  #      'simulator_volume', 'test_name'],
 
+  # TABLE
   table = get_table(df)
+  with open(f'{output_dir}/isotable.tex', 'w') as isotable:
+    isotable.write(table)
 
+  # PLOTS
   TV = {
     '$V_{tidal}$ > 300 ml': df[df['Tidal Volume'] > 300],
     '300 ml > $V_{tidal}$ > 50 ml': df[(300 > df['Tidal Volume']) & (df['Tidal Volume'] > 50)],
@@ -102,6 +106,7 @@ def process_files(files):
     ax.legend()
     ax.set_xlabel(f'{xname}')
     ax.set_ylabel(f'{yname}')
+    fig.savefig(f'{output_dir}/isoplot_{setval}.pdf')
     #fig.show()
   plt.show()
   
@@ -113,6 +118,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='prepare run summary tables from JSON')
   parser.add_argument("input", help="name of the input file (.txt)", nargs='+')
   parser.add_argument("-p", "--plot", action='store_true', help="show plots")
+  parser.add_argument("-o", "--output-dir", type=str, help="output folder for images and LaTeX", default='.')
   args = parser.parse_args()
 
-  process_files(args.input)
+  process_files(args.input, output_dir=args.output_dir)
