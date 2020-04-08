@@ -46,6 +46,7 @@ For example,
 ```
 python combine.py -p ../Data/
 python latexify.py ../Plots/Run\ 9\ Apr\ 3\ 2020/*txt*pdf > ../Plots/Run\ 9\ Apr\ 3\ 2020/summary.tex
+python get_tables.py plots_iso/*json
 ```
 ## Repository structure
 
