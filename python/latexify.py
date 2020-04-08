@@ -96,12 +96,12 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='present plots in LaTeX')
   parser.add_argument('input', help='plots to include', nargs='+')
   parser.add_argument("--db-google-id", type=str, help="name of the Google spreadsheet ID for metadata", default="1aQjGTREc9e7ScwrTQEqHD2gmRy9LhDiVatWznZJdlqM")
-  parser.add_argument("--db-range-name", type=str, help="name of the Google spreadsheet range for metadata", default="20200407 ISO!A2:AZ")
+  parser.add_argument("--db-range-name", type=str, help="name of the Google spreadsheet range for metadata", default="summary!A2:AZ")
   args = parser.parse_args()
 
   test_data = read_online_spreadsheet(spreadsheet_id=args.db_google_id, range_name=args.db_range_name)
 
-  regexp = re.compile('.*/(?P<datafile>.+)_(?P<plotset>\d+)\.\w\w\w') # accept PNG and PDF
+  regexp = re.compile('.*/Run_\d+_[A-Za-z]+_\d_(?P<datafile>.+)_(?P<plotset>\d+)\.\w\w\w') # accept PNG and PDF
 
   test_data = associate_plots(meta=test_data, files=args.input, regexp=regexp, table_entry='MVM_filename')
 

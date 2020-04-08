@@ -21,7 +21,7 @@ while on a Mac:
 Then, create the conda environment:
 ```
   conda config --add channels conda-forge
-  conda create --name piton3 root=6 python=3 mkl jupyter numpy scipy matplotlib scikit-learn h5py pandas pytables root_pandas pytables
+  conda create --name piton3 root=6 python=3 mkl jupyter numpy scipy matplotlib scikit-learn h5py pandas pytables root_pandas pytables google-auth-oauthlib
 ```
 
 and activate it:
@@ -46,6 +46,7 @@ For example,
 ```
 python combine.py -p ../Data/
 python latexify.py ../Plots/Run\ 9\ Apr\ 3\ 2020/*txt*pdf > ../Plots/Run\ 9\ Apr\ 3\ 2020/summary.tex
+python get_tables.py plots_iso/*json --output-dir=plots_iso
 ```
 ## Repository structure
 
