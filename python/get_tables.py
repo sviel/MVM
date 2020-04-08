@@ -11,34 +11,50 @@ def get_table(df):
   for i, row in df.iterrows():
     what = [
       # ISO test details
-      ('TV [ml]', f'${float(row["Tidal Volume"]):.0f}$'),
-      ('C [ml/cmH2O]', f'${float(row["Compliance"]):.0f}$'),
-      ('R [cmH2O/l/s]', f'${float(row["Resistance"]):.0f}$'),
+      ('$V_{tidal}$ [ml]', f'${float(row["Tidal Volume"]):.0f}$'),
+      ('$C$ [ml/cmH2O]', f'${float(row["Compliance"]):.0f}$'),
+      ('$R$ [cmH2O/l/s]', f'${float(row["Resistance"]):.0f}$'),
       ('rate [breaths/min]', f'${float(row["Rate respiratio"]):.0f}$'),
-      ('I:E', f'${float(row["I:E"]):.0f}$'),
-      ('TV [ml]', f'${float(row["Pinspiratia"]):.0f}$'),
-      ('O2', f'$21\%$'), # TODO add oxygen to json
+      ('I:E', f'${float(row["I:E"]):.2f}$'),
+      ('$P_{insp}$ [cmH2O]', f'${float(row["Pinspiratia"]):.0f}$'),
+      ('$O_{2}$', f'$21\%$'), # TODO add oxygen to json
       ('BAP [cmH2O]', f'${float(row["Peep"]):.0f}$'),
       # SIM measurements
-      ('simulator TV [ml]', f'${float(row["simulator_volume_ml"]):.0f}$'),
+      ('simulator $V_{tidal}$ [ml]', f'${float(row["simulator_volume_ml"]):.0f}$'),
       ('simulator $P_{plateau}$ [cmH2O]', f'${float(row["simulator_plateau"]):.0f}$'),
       # MVM measurements
-      ('measured TV [ml]', f'${float(row["mean_volume_ml"]):.0f} \pm {float(row["rms_volume_ml"]):.0f}$'),
+      ('measured $V_{tidal}$ [ml]', f'${float(row["mean_volume_ml"]):.0f} \pm {float(row["rms_volume_ml"]):.0f}$'),
       ('measured $P_{plateau}$ [cmH2O]', f'${float(row["mean_plateau"]):.0f} \pm {float(row["rms_plateau"]):.0f}$'),
       ('measured $P_{peak}$ [cmH2O]', f'${float(row["mean_peak"]):.0f} \pm {float(row["rms_peak"]):.0f}$'),
       ('measured PEEP [cmH2O]', f'${float(row["mean_peep"]):.0f} \pm {float(row["rms_peep"]):.0f}$'),
     ]
 
     if i == 0:
-      print('c'*len(what))
       columns = [ title for title, _ in what ]
+      toprint.append(r'''
+        \documentclass[a4paper]{article}
+        \usepackage[margin=1.0cm]{geometry}
+        \usepackage{rotating}
+        \title{ISO test table}
+        \begin{document}
+        \maketitle
+        \begin{sidewaystable}
+        \tiny
+        \begin{tabular}{''')
+      cstring = 'c'*(len(what)+1)
+      toprint[-1] = f'{toprint[-1]}{cstring}}}'
       toprint.append(' & '.join(columns))
-      toprint[-1] = f'{toprint[-1]}\\hline\\\\' # horizontal bar and new line in LaTeX
+      toprint[-1] = f'{toprint[-1]}\\\\\\hline'# horizontal bar and new line in LaTeX
 
     content = [ cont for _, cont in what ]
     toprint.append(' & '.join(content))
     toprint[-1] = f'{toprint[-1]}\\\\' # new line in LaTeX
 
+  toprint.append(r'''
+    \end{tabular}
+    \end{sidewaystable}
+    \end{document}
+  ''')
   output = '\n'.join(toprint)
   print(output)
   return output
@@ -77,8 +93,8 @@ def process_files(files, output_dir):
     ('$P_{plateau}$ from simulator [$cmH_{2}O$]', 'measured $P_{plateau}$ [$cmH_{2}O$]', 'simulator_plateau', 'mean_plateau', 'rms_plateau'),
     ('set $P_{insp}$ [$cmH_{2}O$]', 'measured $P_{plateau}$ [$cmH_{2}O$]', 'Pinspiratia', 'mean_plateau', 'rms_plateau'),
     ('set $P_{insp}$ [$cmH_{2}O$]', 'measured $P_{peak}$ [$cmH_{2}O$]', 'Pinspiratia', 'mean_peak', 'rms_peak'),
-    ('set TV [ml]', 'measured TV [ml]', 'Tidal Volume', 'mean_volume_ml', 'rms_volume_ml'),
-    ('TV from simulator [ml]', 'measured TV [ml]', 'simulator_volume_ml', 'mean_volume_ml', 'rms_volume_ml'),
+    ('set $V_{tidal}$ [ml]', 'measured $V_{tidal}$ [ml]', 'Tidal Volume', 'mean_volume_ml', 'rms_volume_ml'),
+    ('$V_{tidal}$ from simulator [ml]', 'measured $V_{tidal}$ [ml]', 'simulator_volume_ml', 'mean_volume_ml', 'rms_volume_ml'),
   ]
   
   line = lmfit.models.LinearModel()
@@ -106,6 +122,8 @@ def process_files(files, output_dir):
     ax.legend()
     ax.set_xlabel(f'{xname}')
     ax.set_ylabel(f'{yname}')
+    ax.set_xlim(0, df_to_fit[setval].max()*1.2)
+    ax.set_ylim(0, df_to_fit[mean].max()*1.2)
     fig.savefig(f'{output_dir}/isoplot_{setval}.pdf')
     #fig.show()
   plt.show()
