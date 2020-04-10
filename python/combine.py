@@ -43,51 +43,77 @@ def apply_rough_shift(sim, mvm, manual_offset):
   shift  = tmax2 - tmax1
   if (manual_offset > 0 ) : print ("...Adding additional manual shift by [s]: ", manual_offset)
   mvm['dt'] = mvm['timestamp'] + shift  + manual_offset # add arbitrary shift to better match data
-  print (  mvm['dt'] )
 
 def apply_good_shift(sim, mvm, resp_rate, manual_offset):
   resp_period = 60./resp_rate
 
-  sim['flux'] = np.where(sim['total_flow']>0, sim['total_flow'], 0)
+  sim_variable = 'total_flow' #'airway_pressure' #total_flow
+  mvm_variable = 'flux'       #'airway_pressure' #flux
+  sim['flux'] = np.where(sim[sim_variable]>0, sim[sim_variable], 0)
   sec = sim.dt[1]-sim.dt[0]
   first = sim.dt.to_list()[0]
   last  = sim.dt.to_list()[-1]
-  sim_peaks = sim[(sim['dt']>first+10)&(sim['dt']<last-10)]#.rolling(1).mean()
+  sim_peaks = sim[(sim['dt']>first+5)&(sim['dt']<last-5)]#.rolling(1).mean()
   peak_rows, _ = find_peaks(sim_peaks['flux'].to_list(), prominence=sim_peaks['flux'].max()*0.5, distance=resp_period/sec*0.8)
+  if (len(peak_rows)<2) :
+    peak_rows, _ = find_peaks(sim_peaks['flux'].to_list(), prominence=sim_peaks['flux'].max()*0.3, distance=resp_period/sec*0.8)
+
   sim_peaks = sim_peaks.iloc[peak_rows]
   sim_peaks.sort_values(by=['dt'], inplace=True)
   sim_intervals = sim_peaks['dt'].diff().dropna().to_list()
-
 
   mvm['dt'] = mvm['timestamp']
   sec = mvm.dt[1]-mvm.dt[0]
 
   first = mvm.dt.to_list()[0]
   last  = mvm.dt.to_list()[-1]
-  mvm_peaks = mvm[(mvm['dt']>first+10)&(mvm['dt']<last-10)]#.rolling(1).mean()
-  peak_rows, _ = find_peaks(mvm_peaks['flux'].to_list(), height=mvm_peaks['flux'].max()*0.5, distance=resp_period/sec*0.8)
+  mvm_peaks = mvm[(mvm['dt']>first+5)&(mvm['dt']<last-5)]#.rolling(1).mean()
+  peak_rows, _ = find_peaks(mvm_peaks[mvm_variable].to_list(), height=mvm_peaks[mvm_variable].max()*0.5, distance=resp_period/sec*0.8)
+  if (len(peak_rows)<2) :
+    peak_rows, _ = find_peaks(mvm_peaks[mvm_variable].to_list(), height=mvm_peaks[mvm_variable].max()*0.3, distance=resp_period/sec*0.8)
   mvm_peaks = mvm_peaks.iloc[peak_rows]
   mvm_peaks.sort_values(by=['dt'], inplace=True)
   mvm_intervals = mvm_peaks['dt'].diff().dropna().to_list()
 
-  #print(sim_intervals, mvm_intervals)
-  #print(len(mvm_intervals),len(sim_intervals))
+  #print ("MVM PEAKS", mvm_peaks['dt'])
+  #print ("SIM PEAKS", sim_peaks['dt'])
 
-  mvm_mean = np.mean(mvm_intervals)
-  sim_mean = np.mean(sim_intervals)
+  mvm_peak_times = mvm_peaks['dt'].to_list()
+  sim_peak_times = sim_peaks['dt'].to_list()
+  mvm_peak_hgts = mvm_peaks[mvm_variable].to_list()
+  sim_peak_hgts = sim_peaks['flux'].to_list()
+  print ("I have identidied: ", len(mvm_peak_times), len(sim_peak_times))
+
+  central_idx    = 30
+  min_difference = 1e7
+  tdiff          = 0
+  for i in range (9) :
+    offset = -4 + i
+    subset_sim   = sim_peak_hgts[central_idx-10:central_idx+10]
+    subset_mvm   = mvm_peak_hgts[central_idx-10 + offset :central_idx+10 + offset ]
+    pdiff  = sum ( [ (x-y)*( x-y) for (x,y) in zip (subset_mvm, subset_sim)  ] )
+    if pdiff < min_difference :
+      min_difference = pdiff
+      print ("minimisig distance: ",i, min_difference, mvm_peak_times[central_idx] - sim_peak_times [central_idx] )
+      tdiff =  - np.mean( [ (x-y) for (x,y) in zip (mvm_peak_times, sim_peak_times)  ] )
+
+  mvm_mean = np.nanmean(mvm_intervals)
+  sim_mean = np.nanmean(sim_intervals)
   print(np.mean(mvm_intervals), np.mean(sim_intervals))
 
   interval = mvm_peaks.dt.to_list()[10]-sim_peaks.dt.to_list()[5]
 
-  delay = interval - int(interval/mvm_mean)*mvm_mean
+  delay =  tdiff
+  #delay = - ( interval - int(interval/mvm_mean)*mvm_mean )
+
   print('inspiratory rate ',60./mvm_mean, 'cycle / min')
   print('delay ',delay, 's')
 
   if (abs(manual_offset) > 0 ) : print (".. adding adidtional shift [s]", manual_offset )
-  mvm['dt'] -= delay + manual_offset
+  mvm['dt'] += delay + manual_offset
 
   """
-  ax = mvm.plot(  x='dt',y='flux')
+  ax = mvm.plot( x='dt',y='flux')
   sim.plot(ax=ax, x='dt',y='flux')
   ax.plot(sim_peaks['dt'].to_list(),sim_peaks['flux'].to_list(),'x')
   ax.plot(mvm_peaks['dt'].to_list(),mvm_peaks['flux'].to_list(),'x')
@@ -170,7 +196,6 @@ def add_clinical_values (df, max_R=250, max_C=100) :
   #true resistance
   df['delta_pout_pin']        =  df['airway_pressure'] - df['chamber1_pressure']
   df['delta_vol']             = ( df['chamber1_vol'] * 2 ) .diff()
-  print ( df['airway_pressure'] - df['chamber1_pressure'] , df['delta_vol']/60.)
   df['airway_resistance']     =  df['delta_pout_pin'] / ( df['delta_vol'] / 60. )
   df.loc[ (abs(df.airway_resistance)>max_R) | (df.airway_resistance<0) ,"airway_resistance"] = 0
 
@@ -285,9 +310,8 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
 
   #dfhd = dfhd[(dfhd['dt']>df['dt'].iloc[0]) & (dfhd['dt']<df['dt'].iloc[-1]) ]
   #rough shift for plotting purposes only - max in the first few seconds
-  #apply_rough_shift(sim=df, mvm=dfhd, manual_offset=manual_offset)
-  apply_good_shift(sim=df, mvm=dfhd, resp_rate=meta[objname]["Rate respiratio"], manual_offset=manual_offset)
-
+  apply_rough_shift(sim=df, mvm=dfhd, manual_offset=manual_offset)
+  #apply_good_shift(sim=df, mvm=dfhd, resp_rate=meta[objname]["Rate respiratio"], manual_offset=manual_offset)
 
   ##################################
   # cycles
@@ -298,12 +322,11 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
 
   # compute cycle start
   # start_times = get_muscle_start_times(df) # based on muscle pressure
-  start_times = get_start_times(dfhd) # based on PV2
+  start_times    = get_start_times(dfhd) # based on PV2
   reaction_times = get_reaction_times(df, start_times)
 
   # add info
   add_cycle_info(sim=df, mvm=dfhd, start_times=start_times, reaction_times=reaction_times)
-
 
   ##################################
   # chunks
@@ -331,14 +354,13 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     if i > len(dfhd['ncycle'].unique()) -2 : continue
     #compute tidal volume in simulator df
     subdf             = df[ (df.dt>start_times[i]) & (df.dt<start_times[i+1]) ]
-    print (start_times[i] , this_cycle['dt'].iloc[0])
+
     subdf['total_vol_subtracted'] = subdf['total_vol'] - subdf['total_vol'].min()
     real_tidal_volume = subdf['total_vol_subtracted' ] .max()
     #compute plateau in simulator
     real_plateau = this_cycle_insp['airway_pressure'].iloc[-2]
     real_tidal_volumes.append(  real_tidal_volume   )
     real_plateaus.append (real_plateau)
-
 
     measured_peeps.append(  this_cycle['cycle_PEEP'].iloc[0])
     measured_volumes.append(this_cycle['cycle_tidal_volume'].iloc[0])
@@ -416,7 +438,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     dfhd.plot(ax=ax, x='dt', y='airway_pressure', label='ventilator airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
     dfhd.plot(ax=ax, x='dt', y='flux',            label='ventilator flux            [l/min]', c=colors['flux'] )
     #dfhd.plot(ax=ax, x='dt', y='volume',          label='volume            [l/min]', c=colors['flux'] )
-    dfhd.plot(ax=ax, x='dt', y='out', label='out')
+    #dfhd.plot(ax=ax, x='dt', y='out', label='out')
     #dfhd.plot(ax=ax, x='dt', y='in', label='in')
     #df.plot(ax=ax, x='dt', y='deriv_total_vol', label='deriv_total_vol [l/min]')
     #df.plot(ax=ax, x='dt', y='aux1', label='aux1')
@@ -472,7 +494,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       dfvent.plot(ax=ax11,  x='dt', y='airway_pressure', label='MVM airway pressure [cmH2O]', c=colors['vent_airway_pressure'])
 
       ymin, ymax = ax11.get_ylim()
-      ax11.set_ylim(ymin*1.4, ymax*1.5)
+      ax11.set_ylim(ymin*1.45, ymax*1.55)
       ax11.legend(loc='upper center', ncol=2)
       title1="R = %i [cmH2O/l/s]         C = %2.1f [ml/cmH20]         PEEP = %s [cmH20]"%(RT,CM,PE )
       title2="Inspiration Pressure = %s [cmH20]       Frequency = %s [breath/min]"%(PI,RR)
@@ -485,13 +507,15 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       ax11.text((xmax-xmin)/2.+xmin, 0.026*(ymax-ymin) + ymin,  title1, verticalalignment='bottom', horizontalalignment='center', color='#7697c4')
       nom_pressure = float(meta[local_objname]["Pinspiratia"])
       rect = patches.Rectangle((xmin,nom_pressure-2),xmax-xmin,4,edgecolor='None',facecolor='green', alpha=0.2)
-      ax11.add_patch(rect)
+      #add / remove nominal pressure band
+      #ax11.add_patch(rect)
 
       nom_peep = float(meta[local_objname]["Peep"])
       rect = patches.Rectangle((xmin,nom_peep-0.1),xmax-xmin,0.5,edgecolor='None',facecolor='grey', alpha=0.3)
-      ax11.add_patch(rect)
+      #add / remove PEEP line
+      #ax11.add_patch(rect)
 
-      ax11.set_title ("Test n %s"%meta[objname]['test_name'])
+      ax11.set_title ("Test n %s"%meta[objname]['test_name'], weight='heavy')
       figpath = "%s/%s_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
       print(f'Saving figure to {figpath}')
       fig11.savefig(figpath)
@@ -552,13 +576,11 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       rect = patches.Rectangle((xmin,nom_peep-0.1),xmax-xmin,0.5,edgecolor='None',facecolor='grey', alpha=0.3)
       ax30cycles.add_patch(rect)
       '''
-
       #ax30cycles.set_title ("Test n %s"%meta[objname]['test_name'])
       figpath = "%s/%s_30cycles_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
       print(f'Saving figure to {figpath}')
       fig30c.savefig(figpath)
       """
-
 
       ####################################################
       '''plot the avg wfs'''
@@ -589,7 +611,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       ymin, ymax = ax2.get_ylim()
       ax2.set_ylim(ymin*1.4, ymax*1.5)
       ax2.legend(loc='upper center', ncol=2)
-      title1="R = %i [cmH2O/l/s]         C = %2.1f [ml/cmH20]         PEEP = %s [cmH20]"%(RT,CM,PE )
+      title1="R = %i [cmH2O/l/s]         C = %2.1f [ml/cmH20]        PEEP = %s [cmH20]"%(RT,CM,PE )
       title2="Inspiration Pressure = %s [cmH20]       Frequency = %s [breath/min]"%(PI,RR)
 
       ax2.set_xlabel("Time [s]")
@@ -630,7 +652,6 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       rms_peak    = np.std(measured_peak)
       rms_volume  = np.std(measured_volumes)
 
-
       figs,axes = plt.subplots(2,2)
       axs = axes.flatten()
       #axs.set_title("PEEP", "", "a", "")
@@ -640,7 +661,6 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       aa = patches.Rectangle( (nom_peep_low, axs[0].get_ylim()[0]  ) , nom_peep_wid , axs[0].get_ylim()[1] , edgecolor='red' , facecolor='green' , alpha=0.2)
       axs[0].add_patch(aa)
       axs[0].set_title("PEEP [cmH20], nominal: %i [cmH20]"%nom_peep)
-
 
       nominal_plateau = meta[objname]["Pinspiratia"]
       nominal_plateau_low = nominal_plateau - 2 - 0.04 * nominal_plateau
@@ -672,7 +692,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       axs[3].hist ( measured_volumes  , bins=100, range=( min([ mean_volume,nominal_volume] )*0.7 , max( [mean_volume,nominal_volume] ) *1.4    ), label='measured')
       axs[3].hist ( real_tidal_volumes , bins=100 , label='real')
       aa = patches.Rectangle( (nominal_volume_low, axs[0].get_ylim()[0]  ) , nominal_volume_wid , axs[0].get_ylim()[1] , edgecolor='red' , facecolor='green' , alpha=0.2)
-      axs[3].set_title("tidal  volume [cc], measured: %2.1f [cc]\n, nominal %i [cc]"%(nominal_volume,int ( meta[objname]['Tidal Volume'])/10))
+      axs[3].set_title("tidal  volume [cc], measured: %2.1f [cc],\nnominal %i [cc]"%(nominal_volume,int ( meta[objname]['Tidal Volume'])/10))
       axs[3].legend(loc='upper left')
       axs[3].add_patch(aa)
 
@@ -703,12 +723,13 @@ if __name__ == '__main__':
   parser.add_argument("input", help="name of the MVM input file (.txt)")
   parser.add_argument("-d", "--output-directory", type=str, help="name of the output directory for plots", default="plots_iso")
   parser.add_argument("-i", "--ignore_sim", action='store_true',  help="ignore_sim")
+  parser.add_argument("-skip", "--skip_files", type=str,  help="skip files", nargs='+', default="")
   parser.add_argument("-p", "--plot", action='store_true', help="show plots")
   parser.add_argument("-s", "--save", action='store_true', help="save HDF")
   parser.add_argument("-f", "--filename", type=str, help="single file to be processed", default='.')
   parser.add_argument("-o", "--offset", type=float, help="offset between vent/sim", default='.0')
   parser.add_argument("--db-google-id", type=str, help="name of the Google spreadsheet ID for metadata", default="1aQjGTREc9e7ScwrTQEqHD2gmRy9LhDiVatWznZJdlqM")
-  parser.add_argument("--db-range-name", type=str, help="name of the Google spreadsheet range for metadata", default="summary!A2:AZ")
+  parser.add_argument("--db-range-name", type=str, help="name of the Google spreadsheet range for metadata", default="20200408 ISO!A2:AZ")
   parser.add_argument("--mvm-sep", type=str, help="separator between datetime and the rest in the MVM filename", default=" -> ")
   args = parser.parse_args()
 
@@ -760,6 +781,9 @@ if __name__ == '__main__':
     fname = f'{args.input}/{meta[objname]["Campaign"]}/{meta[objname]["MVM_filename"]}'
     if not fname.endswith(".txt"):
       fname = f'{fname}.txt'
+
+    if fname.split('/')[-1] in args.skip_files :
+      continue
 
     # determine RWA and DTA data locations
     fullpath_rwa = f'{args.input}/{meta[objname]["Campaign"]}/{meta[objname]["SimulatorFileName"]}'
