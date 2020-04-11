@@ -15,7 +15,7 @@ def get_simulator_df(fullpath_rwa, fullpath_dta, columns_rwa, columns_dta):
   df  = df0.join(df_rwa['oxygen'] )
   return df
 
-def get_mvm_df(fname, sep=' -> '): 
+def get_mvm_df(fname, sep=' -> '):
   #data from the ventilator
   data = []
 
@@ -45,7 +45,7 @@ def get_mvm_df(fname, sep=' -> '):
       if ':' not in l[0]:
         t = float(l[0]) # in this way, t is either a string (if HHMMSS) or a float
         is_unix = True
-      data.append({'date': t, 'flux':float(par[0]),'pressure':float(par[1]), 'airway_pressure':float(par[2]), 'in':float(par[3]),'flow2nd_der':float(par[4]), 'out':float(par[5])})
+      data.append({'date': t, 'flux':float(par[0]),'pressure_pv1':float(par[1]), 'airway_pressure':float(par[2]), 'in':float(par[3]),'flow2nd_der':float(par[4]), 'out':float(par[5])})
 
   df = pd.DataFrame(data)
   if not is_unix: # text timestamp
