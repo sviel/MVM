@@ -727,13 +727,27 @@ if __name__ == '__main__':
   parser.add_argument("-p", "--plot", action='store_true', help="show plots")
   parser.add_argument("-s", "--save", action='store_true', help="save HDF")
   parser.add_argument("-f", "--filename", type=str, help="single file to be processed", default='.')
+  parser.add_argument("-c", "--campaign", type=str, help="single campaign to be processed", default="")
   parser.add_argument("-o", "--offset", type=float, help="offset between vent/sim", default='.0')
   parser.add_argument("--db-google-id", type=str, help="name of the Google spreadsheet ID for metadata", default="1aQjGTREc9e7ScwrTQEqHD2gmRy9LhDiVatWznZJdlqM")
   parser.add_argument("--db-range-name", type=str, help="name of the Google spreadsheet range for metadata", default="20200408 ISO!A2:AZ")
   parser.add_argument("--mvm-sep", type=str, help="separator between datetime and the rest in the MVM filename", default=" -> ")
   args = parser.parse_args()
 
-  columns_rwa = ['dt', 'airway_pressure', 'muscle_pressure', 'tracheal_pressure', 'chamber1_vol', 'chamber2_vol', 'total_vol', 'chamber1_pressure', 'chamber2_pressure', 'breath_fileno', 'aux1', 'aux2', 'oxygen']
+  columns_rwa = ['dt',
+    'airway_pressure',
+    'muscle_pressure',
+    'tracheal_pressure',
+    'chamber1_vol',
+    'chamber2_vol',
+    'total_vol',
+    'chamber1_pressure',
+    'chamber2_pressure',
+    'breath_fileno',
+    'aux1',
+    'aux2',
+    'oxygen'
+  ]
   columns_dta = [#'dt',
     'breath_no',
     'compressed_vol',
@@ -741,9 +755,12 @@ if __name__ == '__main__':
     'muscle_pressure',
     'total_vol',
     'total_flow',
-    'chamber1_pressure', 'chamber2_pressure',
-    'chamber1_vol', 'chamber2_vol',
-    'chamber1_flow', 'chamber2_flow',
+    'chamber1_pressure',
+    'chamber2_pressure',
+    'chamber1_vol',
+    'chamber2_vol',
+    'chamber1_flow',
+    'chamber2_flow',
     'tracheal_pressure',
     'ventilator_vol',
     'ventilator_flow',
@@ -768,22 +785,29 @@ if __name__ == '__main__':
   ntests = 0
 
   for filename in filenames:
-    #continue if there is no filename
+    # continue if there is no filename
     if not filename: continue
 
-    #read the metadata and create a dictionary with relevant info
+    # read the metadata and create a dictionary with relevant info
     meta  = read_meta_from_spreadsheet (df_spreadsheet, filename)
     ntests += len(meta)
 
     objname = f'{filename}_0'   #at least first element is always there
 
-    #compute the file location: local folder to the data repository + compaign folder + filename
+    # compute the file location: local folder to the data repository + compaign folder + filename
     fname = f'{args.input}/{meta[objname]["Campaign"]}/{meta[objname]["MVM_filename"]}'
     if not fname.endswith(".txt"):
       fname = f'{fname}.txt'
 
-    if fname.split('/')[-1] in args.skip_files :
+    print(f'\nFile name {fname}')
+    if fname.split('/')[-1] in args.skip_files:
+      print('    ... skipped')
       continue
+
+    if args.campaign:
+      if args.campaign not in fname:
+        print(f'    ... not in selected campaign {args.campaign}')
+        continue
 
     # determine RWA and DTA data locations
     fullpath_rwa = f'{args.input}/{meta[objname]["Campaign"]}/{meta[objname]["SimulatorFileName"]}'
