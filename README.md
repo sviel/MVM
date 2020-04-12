@@ -21,7 +21,7 @@ while on a Mac:
 Then, create the conda environment:
 ```
   conda config --add channels conda-forge
-  conda create --name piton3 root=6 python=3 mkl jupyter numpy scipy matplotlib scikit-learn h5py pandas pytables root_pandas pytables google-auth-oauthlib
+  conda create --name piton3 root=6 python=3 mkl jupyter numpy scipy matplotlib scikit-learn h5py pandas pytables root_pandas pytables google-auth-oauthlib google-api-python-client
 ```
 
 and activate it:
