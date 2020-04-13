@@ -244,11 +244,12 @@ def measure_clinical_values(df, start_times):
     first_sample       = (df.dt == s) # start of inspiration
     last_sample        = (df.dt == v) # beginning of expiration
     next_inspiration_t = inspiration_start_times[i+1]
+    end_of_inspiration_t = inspiration_end_times[i+1]
     inspiration_durations.append (v-s)
 
     df.loc[this_inspiration, 'is_inspiration'] = 1
     #measured inspiration
-    df.loc[ ( df.dt >  s ) & ( df.dt < next_inspiration_t+2e-3 ), 'cycle_tidal_volume']     = df[  ( df.dt >  s ) & ( df.dt < next_inspiration_t+2e-3 ) ]['flux'].sum() * deltaT/60. * 100
+    df.loc[ ( df.dt >  s ) & ( df.dt < next_inspiration_t+2e-3 ), 'cycle_tidal_volume']     = df[  ( df.dt >  s ) & ( df.dt < end_of_inspiration_t+2e-3 ) ]['flux'].sum() * deltaT/60. * 100
     df.loc[this_inspiration, 'cycle_peak_pressure']    = df[ this_inspiration ]['airway_pressure'].max()
     df.loc[this_inspiration, 'cycle_plateau_pressure'] = df[ this_inspiration &( df.dt > v - 20e-3 ) & ( df.dt < v-10e-3 ) ]['airway_pressure'].mean()
     #not necessarily measured during inspiration
@@ -384,7 +385,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     subdf['total_vol_subtracted'] = subdf['total_vol'] - subdf['total_vol'].min()
     real_tidal_volume = subdf['total_vol_subtracted' ] .max()
     #compute plateau in simulator
-    real_plateau = 0 #this_cycle_insp['airway_pressure'].iloc[-2]
+    real_plateau = this_cycle_insp[(this_cycle_insp['dt'] > start_times[i] + inspiration_duration - 20e-3) & (this_cycle_insp['dt'] < start_times[i] + inspiration_duration - 10e-3)]['airway_pressure'].mean()
     real_tidal_volumes.append(  real_tidal_volume   )
     real_plateaus.append (real_plateau)
 
@@ -745,10 +746,10 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       nominal_plateau_low = nominal_plateau - 2 - 0.04 * nominal_plateau
       nominal_plateau_wid = 4 + 0.08 * nominal_plateau
       print (measured_plateaus, mean_plateau, nominal_plateau )
-      axs[2].hist ( measured_plateaus  , bins=100, range=( min([ mean_plateau,nominal_plateau] )*0.7 , max( [mean_plateau,nominal_plateau] ) *1.4    ), label='measured')
-      axs[2].hist ( real_plateaus , bins=100 , label='real')
+      axs[2].hist ( measured_plateaus  , bins=100, range=( min([ mean_plateau,nominal_plateau] )*0.7 , max( [mean_plateau,nominal_plateau] ) *1.4    ), label='MVM')
+      axs[2].hist ( real_plateaus , bins=100 , label='SIM')
       aa = patches.Rectangle( (nominal_plateau_low, axs[0].get_ylim()[0]  ) , nominal_plateau_wid , axs[0].get_ylim()[1] , edgecolor='red' , facecolor='green' , alpha=0.2)
-      axs[2].set_title("tidal  plateau [cc], measured: %2.1f [cc]"%(nominal_plateau))
+      axs[2].set_title("tidal plateau [cmH2O], <SIM>: %2.1f [cmH2O]"%(nominal_plateau))
       axs[2].legend(loc='upper left')
       axs[2].add_patch(aa)
 
@@ -756,10 +757,10 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       print (nominal_volume)
       nominal_volume_low = nominal_volume - 4 - 0.15 * nominal_volume
       nominal_volume_wid = 8 + 0.3 * nominal_volume
-      axs[3].hist ( measured_volumes  , bins=100, range=( min([ mean_volume,nominal_volume] )*0.7 , max( [mean_volume,nominal_volume] ) *1.4    ), label='measured')
-      axs[3].hist ( real_tidal_volumes , bins=100 , label='real')
+      axs[3].hist ( measured_volumes  , bins=100, range=( min([ mean_volume,nominal_volume] )*0.7 , max( [mean_volume,nominal_volume] ) *1.4    ), label='MVM')
+      axs[3].hist ( real_tidal_volumes , bins=100 , label='SIM')
       aa = patches.Rectangle( (nominal_volume_low, axs[0].get_ylim()[0]  ) , nominal_volume_wid , axs[0].get_ylim()[1] , edgecolor='red' , facecolor='green' , alpha=0.2)
-      axs[3].set_title("tidal  volume [cc], measured: %2.1f [cc],\nnominal %i [cc]"%(nominal_volume,int ( meta[objname]['Tidal Volume'])/10))
+      axs[3].set_title("tidal volume [cl], <SIM>: %2.1f [cl],\nnominal %i [cl]"%(nominal_volume,int ( meta[objname]['Tidal Volume'])/10))
       axs[3].legend(loc='upper left')
       axs[3].add_patch(aa)
 
