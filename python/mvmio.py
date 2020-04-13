@@ -123,10 +123,10 @@ def get_mvm_df(fname, sep=' -> ', configuration='default'):
   if not is_unix: # text timestamp
     df['dt'] = ( pd.to_datetime(df['date']) - pd.to_datetime(df['date'][0]) )/np.timedelta64(1,'s')
   else: # unix timestamp in seconds
-    print (df['date'])
+    #print (df['date'])
     df['dt'] = ( pd.to_datetime(df['date'], unit='s') - pd.to_datetime(df['date'][0], unit='s') )/np.timedelta64(1,'s')
 
-  print (df.head())
+  #print (df.head())
   #dtmax = df.iloc[-1,:]['dt']
   #timestamp = np.linspace( df.iloc[0,:]['dt'] ,  df.iloc[-1,:]['dt']*(dtmax-0.08)/dtmax , len(df) )   #use this line if you want to stretch the x axis of MVM data
 
