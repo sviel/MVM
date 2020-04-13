@@ -84,7 +84,7 @@ def apply_good_shift(sim, mvm, resp_rate, manual_offset):
   sim_peak_times = sim_peaks['dt'].to_list()
   mvm_peak_hgts = mvm_peaks[mvm_variable].to_list()
   sim_peak_hgts = sim_peaks['flux'].to_list()
-  print ("I have identidied: ", len(mvm_peak_times), len(sim_peak_times))
+  print ("I have identified: ", len(mvm_peak_times), len(sim_peak_times))
 
   central_idx    = 20
   min_difference = 1e7
@@ -742,10 +742,12 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       #axs[2].hist ( measured_peak   , bins=100, range=(mean_peak*0.8 , mean_peak*1.3)  )
       #axs[2].set_title("peak pressure [cmH20]")
 
-      nominal_plateau     =   np.nanmean( real_plateaus)   # float ( meta[objname]["Tidal plateau"] ) / 10.
+      real_plateaus = np.array([real_plateaus])
+      real_plateaus = real_plateaus[~np.isnan(real_plateaus)]
+      nominal_plateau     =   np.mean( real_plateaus)   # float ( meta[objname]["Tidal plateau"] ) / 10.
       nominal_plateau_low = nominal_plateau - 2 - 0.04 * nominal_plateau
       nominal_plateau_wid = 4 + 0.08 * nominal_plateau
-      print (measured_plateaus, mean_plateau, nominal_plateau )
+      #print (measured_plateaus, mean_plateau, nominal_plateau )
       axs[2].hist ( measured_plateaus  , bins=100, range=( min([ mean_plateau,nominal_plateau] )*0.7 , max( [mean_plateau,nominal_plateau] ) *1.4    ), label='MVM')
       axs[2].hist ( real_plateaus , bins=100 , label='SIM')
       aa = patches.Rectangle( (nominal_plateau_low, axs[0].get_ylim()[0]  ) , nominal_plateau_wid , axs[0].get_ylim()[1] , edgecolor='red' , facecolor='green' , alpha=0.2)
@@ -754,7 +756,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       axs[2].add_patch(aa)
 
       nominal_volume     =   np.nanmean( real_tidal_volumes)   # float ( meta[objname]["Tidal Volume"] ) / 10.
-      print (nominal_volume)
+      #print (nominal_volume)
       nominal_volume_low = nominal_volume - 4 - 0.15 * nominal_volume
       nominal_volume_wid = 8 + 0.3 * nominal_volume
       axs[3].hist ( measured_volumes  , bins=100, range=( min([ mean_volume,nominal_volume] )*0.7 , max( [mean_volume,nominal_volume] ) *1.4    ), label='MVM')
