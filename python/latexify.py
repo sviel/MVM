@@ -74,7 +74,7 @@ def print_latex(meta, title, figure_caption="", rows=3, columns=2):
     toprint.append(r'''      \caption{''')
     toprint.append(f'%%% $TV=\\SI{{{row["TV"]}}}{{ml}}$, $C=\\SI{{{row["C"]}}}{{ml/cmH_{2}O}}$, $R=\\SI{{{row["R"]}}}{{cmH_{2}O/l/s}}$, $p=\\SI{{{row["plateau"]}}}{{cmH_{2}O}}$, r=$\\SI{{{row["rate"]}}}{{bpm}}$,$I:E={row["ratio"]}$, $O_2={row["O2"]}$, $PEEP=\\SI{{{row["PEEP"]}}}{{cmH_{2}O}}$}}\n')
     toprint.append(f'%%%TV={row["TV"]}, C={row["C"]}, R={row["R"]}, p={row["plateau"]}, r={row["rate"]}, I:E={row["ratio"]}, $O_2={row["O2"]}$, PEEP={row["PEEP"]}}}\n')
-    toprint.append(f'TV={row["TV"]}, C={row["C"]}, R={row["R"]}, p={row["plateau"]}, r={row["rate"]}, PEEP={row["PEEP"]}}}, I:E={row["ratio"]}')
+    toprint.append(f'TV={row["TV"]}, C={row["C"]}, R={row["R"]}, p={row["plateau"]}, I:E={row["ratio"]}, r={row["rate"]}, PEEP={row["PEEP"]}}}')
     toprint.append(r'''
       \end{subfigure}'''
     )
@@ -96,7 +96,7 @@ if __name__ == '__main__':
   parser = argparse.ArgumentParser(description='present plots in LaTeX')
   parser.add_argument('input', help='plots to include', nargs='+')
   parser.add_argument("--db-google-id", type=str, help="name of the Google spreadsheet ID for metadata", default="1aQjGTREc9e7ScwrTQEqHD2gmRy9LhDiVatWznZJdlqM")
-  parser.add_argument("--db-range-name", type=str, help="name of the Google spreadsheet range for metadata", default="summary!A2:AZ")
+  parser.add_argument("--db-range-name", type=str, help="name of the Google spreadsheet range for metadata", default="20200408 ISO!A2:AZ")
   args = parser.parse_args()
 
   test_data = read_online_spreadsheet(spreadsheet_id=args.db_google_id, range_name=args.db_range_name)
