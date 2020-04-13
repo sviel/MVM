@@ -491,12 +491,12 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     ax.legend(loc='upper center', ncol=2)
 
 
-
+    figbis,axbis = plt.subplots()
 
     ####################################################
     '''general service canavas number 2, measured simulation parameters'''
     ####################################################
-    axbis = df.plot(x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['sim_airway_pressure'])
+    df.plot(ax=axbis, x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['sim_airway_pressure'])
     df.plot(ax=axbis, x='dt', y='total_flow',    label='total_flow      [l/min]', c=colors['total_flow'])
     plt.plot(start_times, [0]*len(start_times), 'bo', label='real cycle start time')
     df.plot(ax=axbis, x='dt', y='compliance',   label='SIM compliance', c='black')
@@ -514,9 +514,17 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     mytext = "Measured respiration rate: %1.1f br/min, inspiration duration: %1.1f s"%(respiration_rate, inspiration_duration)
     axbis.text((xmax-xmin)/2.+xmin, 0.08*(ymax-ymin) + ymin,   mytext, verticalalignment='bottom', horizontalalignment='center', color='#7697c4')
 
+    #mytext = "Measured C  %1.1f , resistance: %1.1f s"%(meas, inspiration_duration)
+    #axbis.text((xmax-xmin)/2.+xmin, 0.08*(ymax-ymin) + ymin,   mytext, verticalalignment='bottom', horizontalalignment='center', color='#7697c4')
+
 
     axbis.set_xlabel("Time [sec]")
     axbis.legend(loc='upper center', ncol=2)
+
+    axbis.set_title ("Test n %s"%meta[objname]['test_name'], weight='heavy')
+    figpath = "%s/%s_service_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
+    print(f'Saving figure to {figpath}')
+    figbis.savefig(figpath)
 
     ####################################################
     '''formatted plots for ISO std'''
@@ -589,7 +597,10 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       fig11.savefig(figpath)
 
       #dfvent.plot(ax=ax11,  x='dt', y='pressure_pv1', label='MVM PV1 pressure [cmH2O]', c='black')
-      #figpath = "%s/%s_service_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
+      dftmp.plot(ax=ax11, x='dt', y='compliance',   label='SIM compliance', c='black')
+      dftmp.plot(ax=ax11, x='dt', y='airway_resistance',   label='SIM resistance', c='black', linestyle="--")
+
+      figpath = "%s/%s_service2_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
       ax11.legend(loc='upper center', ncol=2)
       fig11.savefig(figpath)
 
@@ -749,9 +760,9 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       nominal_plateau_wid = 4 + 0.08 * nominal_plateau
       #print (measured_plateaus, mean_plateau, nominal_plateau )
       axs[2].hist ( measured_plateaus  , bins=100, range=( min([ mean_plateau,nominal_plateau] )*0.7 , max( [mean_plateau,nominal_plateau] ) *1.4    ), label='MVM')
-      axs[2].hist ( real_plateaus , bins=100 , label='SIM')
+      axs[2].hist ( real_plateaus ,  label='SIM')
       aa = patches.Rectangle( (nominal_plateau_low, axs[0].get_ylim()[0]  ) , nominal_plateau_wid , axs[0].get_ylim()[1] , edgecolor='red' , facecolor='green' , alpha=0.2)
-      axs[2].set_title("tidal plateau [cmH2O], <SIM>: %2.1f [cmH2O]"%(nominal_plateau))
+      axs[2].set_title("plateau [cmH2O], <SIM>: %2.1f [cmH2O]"%(nominal_plateau) )
       axs[2].legend(loc='upper left')
       axs[2].add_patch(aa)
 
@@ -760,7 +771,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       nominal_volume_low = nominal_volume - 4 - 0.15 * nominal_volume
       nominal_volume_wid = 8 + 0.3 * nominal_volume
       axs[3].hist ( measured_volumes  , bins=100, range=( min([ mean_volume,nominal_volume] )*0.7 , max( [mean_volume,nominal_volume] ) *1.4    ), label='MVM')
-      axs[3].hist ( real_tidal_volumes , bins=100 , label='SIM')
+      axs[3].hist ( real_tidal_volumes , label='SIM')
       aa = patches.Rectangle( (nominal_volume_low, axs[0].get_ylim()[0]  ) , nominal_volume_wid , axs[0].get_ylim()[1] , edgecolor='red' , facecolor='green' , alpha=0.2)
       axs[3].set_title("tidal volume [cl], <SIM>: %2.1f [cl],\nnominal %i [cl]"%(nominal_volume,int ( meta[objname]['Tidal Volume'])/10))
       axs[3].legend(loc='upper left')
