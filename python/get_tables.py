@@ -92,7 +92,7 @@ def process_files(files, output_dir):
     ('BAP [$cmH_{2}O$]', 'PEEP [$cmH_{2}O$]', 'Peep', 'mean_peep', 'rms_peep'),
     ('$P_{plateau}$ from simulator [$cmH_{2}O$]', 'measured $P_{plateau}$ [$cmH_{2}O$]', 'simulator_plateau', 'mean_plateau', 'rms_plateau'),
     ('set $P_{insp}$ [$cmH_{2}O$]', 'measured $P_{plateau}$ [$cmH_{2}O$]', 'Pinspiratia', 'mean_plateau', 'rms_plateau'),
-    ('set $P_{insp}$ [$cmH_{2}O$]', 'measured $P_{peak}$ [$cmH_{2}O$]', 'Pinspiratia', 'mean_peak', 'rms_peak'),
+#   ('set $P_{insp}$ [$cmH_{2}O$]', 'measured $P_{peak}$ [$cmH_{2}O$]', 'Pinspiratia', 'mean_peak', 'rms_peak'),
     ('set $V_{tidal}$ [ml]', 'measured $V_{tidal}$ [ml]', 'Tidal Volume', 'mean_volume_ml', 'rms_volume_ml'),
     ('$V_{tidal}$ from simulator [ml]', 'measured $V_{tidal}$ [ml]', 'simulator_volume_ml', 'mean_volume_ml', 'rms_volume_ml'),
   ]
@@ -117,7 +117,7 @@ def process_files(files, output_dir):
 
     print(res.fit_report())
    #fitstring = f'${res.best_values["intercept"]} \pm {(res.best_values["slope"]-1)*100}$%'
-    fitstring = f'$\pm$({abs(res.best_values["intercept"]):.1f} +({abs((res.best_values["slope"]-1)*100):.0f}% of the value))'
+    fitstring = f'$\pm$({abs(res.best_values["intercept"]):.1f} +({abs((res.best_values["slope"]-1)*100):.1f}% of the value))'
     ax.plot(df_to_fit[setval], res.best_fit, '-', label=fitstring)
     ax.legend()
     ax.set_xlabel(f'{xname}')
