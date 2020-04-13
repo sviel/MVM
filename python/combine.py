@@ -244,7 +244,7 @@ def measure_clinical_values(df, start_times):
     first_sample       = (df.dt == s) # start of inspiration
     last_sample        = (df.dt == v) # beginning of expiration
     next_inspiration_t = inspiration_start_times[i+1]
-    end_of_inspiration_t = inspiration_end_times[i+1]
+    end_of_inspiration_t = v
     inspiration_durations.append (v-s)
 
     df.loc[this_inspiration, 'is_inspiration'] = 1
