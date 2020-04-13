@@ -44,7 +44,7 @@ pip install --user pytables
 ## To run
 For example,
 ```
-python combine.py -p ../Data/
+python combine.py ../Data -p --mvm-col='mvm_col_arduino' -d plotsdir_tmp
 python latexify.py ../Plots/Run\ 9\ Apr\ 3\ 2020/*txt*pdf > ../Plots/Run\ 9\ Apr\ 3\ 2020/summary.tex
 python get_tables.py plots_iso/*json --output-dir=plots_iso
 ```
