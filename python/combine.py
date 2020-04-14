@@ -490,6 +490,11 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     ax.set_xlabel("Time [sec]")
     ax.legend(loc='upper center', ncol=2)
 
+    ax.set_title ("Test n %s"%meta[objname]['test_name'], weight='heavy')
+    figpath = "%s/%s_service_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', ''))
+    print(f'Saving figure to {figpath}')
+    plt.savefig(figpath)
+
 
     figbis,axbis = plt.subplots()
 
@@ -522,7 +527,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     axbis.legend(loc='upper center', ncol=2)
 
     axbis.set_title ("Test n %s"%meta[objname]['test_name'], weight='heavy')
-    figpath = "%s/%s_service_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
+    figpath = "%s/%s_service2_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
     print(f'Saving figure to {figpath}')
     figbis.savefig(figpath)
 
@@ -600,7 +605,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       dftmp.plot(ax=ax11, x='dt', y='compliance',   label='SIM compliance', c='black')
       dftmp.plot(ax=ax11, x='dt', y='airway_resistance',   label='SIM resistance', c='black', linestyle="--")
 
-      figpath = "%s/%s_service2_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
+      figpath = "%s/%s_extrainfo_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
       ax11.legend(loc='upper center', ncol=2)
       fig11.savefig(figpath)
 
