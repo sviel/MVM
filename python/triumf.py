@@ -209,7 +209,7 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
     ax.set_xlabel("Time [sec]")
     ax.legend(loc='upper center', ncol=2)
 
-    ax.set_title ("Test n %s"%meta[objname]['test_name'], weight='heavy')
+    ax.set_title ("TRIUMF Test n %s"%meta[objname]['test_name'], weight='heavy')
     figpath = "%s/%s_service_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', ''))
     print(f'Saving figure to {figpath}')
     plt.savefig(figpath)
@@ -234,7 +234,7 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
     axbis.set_xlabel("Time [sec]")
     axbis.legend(loc='upper center', ncol=2)
 
-    axbis.set_title ("Test n %s"%meta[objname]['test_name'], weight='heavy')
+    axbis.set_title ("TRIUMF Test n %s"%meta[objname]['test_name'], weight='heavy')
     figpath = "%s/%s_service2_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', ''))
     print(f'Saving figure to {figpath}')
     figbis.savefig(figpath)
@@ -295,7 +295,7 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
       #add / remove PEEP line
       #ax11.add_patch(rect)
 
-      ax11.set_title ("Test n %s"%meta[objname]['test_name'], weight='heavy')
+      ax11.set_title ("TRIUMF Test n %s"%meta[objname]['test_name'], weight='heavy')
       figpath = "%s/%s_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', ''))
       print(f'Saving figure to {figpath}')
       fig11.savefig(figpath)
@@ -313,8 +313,9 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
       ####################################################
 
       fig2, ax2 = plt.subplots()
-      #make a subset dataframe for simulator
-      dftmp = df[ (df['start'] >= start_times[ 4 ] ) & ( df['start'] < start_times[ min ([35,len(start_times)-1] )  ])]
+      ## make a subset dataframe for simulator
+      #dftmp = df[ (df['start'] >= start_times[ 4 ] ) & ( df['start'] < start_times[ min ([35,len(start_times)-1] )  ])]
+      dftmp = df[ (df['start'] >= start_times[ my_selected_cycle ] ) & ( df['start'] < start_times[ len(start_times)-1  ])]
       dftmp['dtc'] = df['dt'] - df['start']
 
       dftmp.loc[:, 'total_vol'] = dftmp['total_vol'] - dftmp['total_vol'].min()
@@ -325,7 +326,13 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
 
       ymin, ymax = ax2.get_ylim()
       ax2.set_ylim(ymin*1.4, ymax*1.5)
-      ax2.legend(loc='upper center', ncol=2)
+      ax2legend = ax2.legend(loc='upper center', ncol=2)
+      ## hack to set larger marker size in legend only, one line per data series
+      legmarkersize = 10
+      ax2legend.legendHandles[0]._legmarker.set_markersize(legmarkersize)
+      ax2legend.legendHandles[1]._legmarker.set_markersize(legmarkersize)
+      ax2legend.legendHandles[2]._legmarker.set_markersize(legmarkersize)
+
       title1="R = %i [cmH2O/l/s]         C = %2.1f [ml/cmH20]        PEEP = %s [cmH20]"%(RT,CM,PE )
       title2="Inspiration Pressure = %s [cmH20]       Frequency = %s [breath/min]"%(PI,RR)
 
@@ -343,7 +350,7 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
       rect = patches.Rectangle((xmin,nom_peep-0.1),xmax-xmin,0.5,edgecolor='None',facecolor='grey', alpha=0.3)
       ax2.add_patch(rect)
 
-      ax2.set_title ("Test n %s"%meta[objname]['test_name'])
+      ax2.set_title ("TRIUMF Test n %s"%meta[objname]['test_name'])
       figpath = "%s/%s_avg_%s.png" % (output_directory, meta[objname]['Campaign'] , objname.replace('.txt', ''))
       print(f'Saving figure to {figpath}')
       fig2.savefig(figpath)
