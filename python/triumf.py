@@ -261,9 +261,9 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
       fig11, ax11 = plt.subplots()
 
       print (start_times)
-      #make a subset dataframe for simulator
+      ## make a subset dataframe for simulator
       dftmp = df[ (df['start'] >= start_times[ my_selected_cycle ] ) & ( df['start'] < start_times[ my_selected_cycle + 6])  ]
-      #the (redundant) line below avoids the annoying warning
+      ## the (redundant) line below avoids the annoying warning
       dftmp = dftmp[ (dftmp['start'] >= start_times[ my_selected_cycle ] ) & ( dftmp['start'] < start_times[ my_selected_cycle + 6])  ]
 
       dftmp.loc[:, 'total_vol'] = dftmp['total_vol'] - dftmp['total_vol'].min()
@@ -315,7 +315,9 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
       fig2, ax2 = plt.subplots()
       ## make a subset dataframe for simulator
       #dftmp = df[ (df['start'] >= start_times[ 4 ] ) & ( df['start'] < start_times[ min ([35,len(start_times)-1] )  ])]
-      dftmp = df[ (df['start'] >= start_times[ my_selected_cycle ] ) & ( df['start'] < start_times[ len(start_times)-1  ])]
+      dftmp = df[ (df['start'] >= start_times[ my_selected_cycle ] ) & ( df['start'] < start_times[ len(start_times)-1 ])]
+      ## the (redundant) line below avoids the annoying warning
+      dftmp = dftmp[ (dftmp['start'] >= start_times[ my_selected_cycle ] ) & ( dftmp['start'] < start_times[ len(start_times)-1 ])  ]
       dftmp['dtc'] = df['dt'] - df['start']
 
       dftmp.loc[:, 'total_vol'] = dftmp['total_vol'] - dftmp['total_vol'].min()
