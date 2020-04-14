@@ -148,14 +148,13 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
   # compute tidal volume etc
   add_clinical_values(df)
 
-  plt.plot(df['dt'], df['tracheal_pressure'], label='true tracheal_pressure')
-  plt.plot(df['dt'], df['airway_pressure'], label='true airway_pressure')
-  plt.plot(df['dt'], df['chamber1_pressure'], label='true ch1_pressure')
-  plt.plot(df['dt'], df['chamber2_pressure'], label='true ch2_pressure')
-  plt.plot(df['dt'], df['airway_resistance'], label='true airway_resistance')
-  plt.plot(df['dt'], df['compliance'], label='true compliance')
-
-  plt.legend()
+  #plt.plot(df['dt'], df['tracheal_pressure'], label='true tracheal_pressure')
+  #plt.plot(df['dt'], df['airway_pressure'], label='true airway_pressure')
+  #plt.plot(df['dt'], df['chamber1_pressure'], label='true ch1_pressure')
+  #plt.plot(df['dt'], df['chamber2_pressure'], label='true ch2_pressure')
+  #plt.plot(df['dt'], df['airway_resistance'], label='true airway_resistance')
+  #plt.plot(df['dt'], df['compliance'], label='true compliance')
+  #plt.legend()
   #plt.show()
 
   ##################################
@@ -183,7 +182,7 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
     }
 
     ####################################################
-    '''general service canavas number 1'''
+    '''general service canvas number 1'''
     ####################################################
     ax = df.plot(x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['sim_airway_pressure'])
     df.plot(ax=ax, x='dt', y='total_flow',    label='total_flow      [l/min]', c=colors['total_flow'])
@@ -210,30 +209,36 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
     ax.set_xlabel("Time [sec]")
     ax.legend(loc='upper center', ncol=2)
 
+    ax.set_title ("Test n %s"%meta[objname]['test_name'], weight='heavy')
+    figpath = "%s/%s_service_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', ''))
+    print(f'Saving figure to {figpath}')
+    plt.savefig(figpath)
 
-    figbis,axbis = plt.subplots()
 
     ####################################################
-    '''general service canavas number 2, measured simulation parameters'''
+    '''general service canvas number 2, measured simulation parameters'''
     ####################################################
+    figbis, axbis = plt.subplots()
+
     df.plot(ax=axbis, x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['sim_airway_pressure'])
     df.plot(ax=axbis, x='dt', y='total_flow',    label='total_flow      [l/min]', c=colors['total_flow'])
     plt.plot(start_times, [0]*len(start_times), 'bo', label='real cycle start time')
-    df.plot(ax=axbis, x='dt', y='compliance',   label='SIM compliance', c='black')
-    df.plot(ax=axbis, x='dt', y='airway_resistance',   label='SIM resistance', c='black', linestyle="--")
+    #df.plot(ax=axbis, x='dt', y='compliance',   label='SIM compliance', c='blue')
+    #df.plot(ax=axbis, x='dt', y='airway_resistance',   label='SIM resistance', c='black', linestyle="--")
 
     xmin, xmax = axbis.get_xlim()
     ymin, ymax = axbis.get_ylim()
-    mytext = "Write information here"
+    mytext = ""  # text label to write on the plot
     axbis.text((xmax-xmin)/2.+xmin, 0.08*(ymax-ymin) + ymin, mytext, verticalalignment='bottom', horizontalalignment='center', color='#7697c4')
 
     axbis.set_xlabel("Time [sec]")
     axbis.legend(loc='upper center', ncol=2)
 
     axbis.set_title ("Test n %s"%meta[objname]['test_name'], weight='heavy')
-    figpath = "%s/%s_service_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
+    figpath = "%s/%s_service2_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', ''))
     print(f'Saving figure to {figpath}')
     figbis.savefig(figpath)
+
 
     ####################################################
     '''formatted plots for ISO std'''
@@ -253,17 +258,13 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
       my_selected_cycle = meta[local_objname]["cycle_index"]
       print ("\nFor test [ %s ]  I am selecting cycle %i, starting at %f \n"%(meta[local_objname]["test_name"], my_selected_cycle , start_times[ my_selected_cycle ]))
 
-      fig11,ax11 = plt.subplots()
+      fig11, ax11 = plt.subplots()
 
       print (start_times)
       #make a subset dataframe for simulator
       dftmp = df[ (df['start'] >= start_times[ my_selected_cycle ] ) & ( df['start'] < start_times[ my_selected_cycle + 6])  ]
       #the (redundant) line below avoids the annoying warning
       dftmp = dftmp[ (dftmp['start'] >= start_times[ my_selected_cycle ] ) & ( dftmp['start'] < start_times[ my_selected_cycle + 6])  ]
-
-      #make a subset dataframe for ventilator
-      first_time_bin  = dftmp['dt'].iloc[0]
-      last_time_bin   = dftmp['dt'].iloc[len(dftmp)-1]
 
       dftmp.loc[:, 'total_vol'] = dftmp['total_vol'] - dftmp['total_vol'].min()
 
@@ -295,16 +296,17 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
       #ax11.add_patch(rect)
 
       ax11.set_title ("Test n %s"%meta[objname]['test_name'], weight='heavy')
-      figpath = "%s/%s_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
+      figpath = "%s/%s_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', ''))
       print(f'Saving figure to {figpath}')
       fig11.savefig(figpath)
 
-      dftmp.plot(ax=ax11, x='dt', y='compliance',   label='SIM compliance', c='black')
-      dftmp.plot(ax=ax11, x='dt', y='airway_resistance',   label='SIM resistance', c='black', linestyle="--")
-
-      figpath = "%s/%s_service2_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
-      ax11.legend(loc='upper center', ncol=2)
-      fig11.savefig(figpath)
+      ## Same plot, with SIM compilance and SIM resistance
+      #dftmp.plot(ax=ax11, x='dt', y='compliance',   label='SIM compliance', c='blue')
+      #dftmp.plot(ax=ax11, x='dt', y='airway_resistance',   label='SIM resistance', c='black', linestyle="--")
+      #figpath = "%s/%s_extrainfo_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', ''))
+      #ax11.legend(loc='upper center', ncol=2)
+      #print(f'Saving figure to {figpath}')
+      #fig11.savefig(figpath)
 
       ####################################################
       '''plot the avg wfs'''
@@ -314,10 +316,6 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
       #make a subset dataframe for simulator
       dftmp = df[ (df['start'] >= start_times[ 4 ] ) & ( df['start'] < start_times[ min ([35,len(start_times)-1] )  ])]
       dftmp['dtc'] = df['dt'] - df['start']
-
-      #make a subset dataframe for ventilator
-      first_time_bin  = dftmp['dt'].iloc[0]
-      last_time_bin   = dftmp['dt'].iloc[len(dftmp)-1]
 
       dftmp.loc[:, 'total_vol'] = dftmp['total_vol'] - dftmp['total_vol'].min()
 
@@ -346,7 +344,7 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
       ax2.add_patch(rect)
 
       ax2.set_title ("Test n %s"%meta[objname]['test_name'])
-      figpath = "%s/%s_avg_%s.png" % (output_directory, meta[objname]['Campaign'] , objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
+      figpath = "%s/%s_avg_%s.png" % (output_directory, meta[objname]['Campaign'] , objname.replace('.txt', ''))
       print(f'Saving figure to {figpath}')
       fig2.savefig(figpath)
 
