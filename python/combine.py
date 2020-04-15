@@ -498,15 +498,6 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     ax.set_xlabel("Time [sec]")
     ax.legend(loc='upper center', ncol=2)
 
-    ax.set_title ("Test n %s"%meta[objname]['test_name'], weight='heavy')
-    figpath = "%s/%s_service_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', ''))
-    print(f'Saving figure to {figpath}')
-    plt.savefig(figpath)
-
-
-    ####################################################
-    '''general service canavas number 2, measured simulation parameters'''
-    ####################################################
 
     figbis = plt.figure()
     figbis.suptitle ("Test n %s"%meta[objname]['test_name'], weight='heavy')
@@ -515,6 +506,9 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     axbis0 = figbis.add_subplot(gs[0, 0])
     axbis1 = figbis.add_subplot(gs[0, 1])
     axbis2 = figbis.add_subplot(gs[1:, :])
+    ####################################################
+    '''general service canavas number 2, measured simulation parameters'''
+    ####################################################
 
     df.plot(ax=axbis2, x='dt', y='airway_pressure', label='airway_pressure [cmH2O]', c=colors['sim_airway_pressure'])
     df.plot(ax=axbis2, x='dt', y='total_flow',    label='total_flow      [l/min]', c=colors['total_flow'])
@@ -542,7 +536,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     axbis1.hist ( dfhd[( dfhd['resistance']>0)]['resistance'].unique() , bins=50 )
     axbis1.set_xlabel("Measured resistance [cmH2O/l/s]")
 
-    figpath = "%s/%s_service2_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
+    figpath = "%s/%s_service_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
     print(f'Saving figure to {figpath}')
     figbis.savefig(figpath)
 
@@ -626,7 +620,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
       dftmp.plot(ax=ax11, x='dt', y='compliance',   label='SIM compliance', c='black')
       dftmp.plot(ax=ax11, x='dt', y='airway_resistance',   label='SIM resistance', c='black', linestyle="--")
 
-      figpath = "%s/%s_extrainfo_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
+      figpath = "%s/%s_service2_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
       ax11.legend(loc='upper center', ncol=2)
       fig11.savefig(figpath)
       '''
