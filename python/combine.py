@@ -499,7 +499,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     ax.legend(loc='upper center', ncol=2)
 
     ax.set_title ("Test n %s"%meta[objname]['test_name'], weight='heavy')
-    figpath = "%s/%s_service_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', ''))
+    figpath = "%s/%s_service_%s.png" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', ''))
     print(f'Saving figure to {figpath}')
     plt.savefig(figpath)
 
@@ -542,7 +542,7 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     axbis1.hist ( dfhd[( dfhd['resistance']>0)]['resistance'].unique() , bins=50 )
     axbis1.set_xlabel("Measured resistance [cmH2O/l/s]")
 
-    figpath = "%s/%s_service2_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
+    figpath = "%s/%s_service2_%s.png" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
     print(f'Saving figure to {figpath}')
     figbis.savefig(figpath)
 
