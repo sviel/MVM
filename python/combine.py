@@ -542,10 +542,6 @@ def process_run(meta, objname, input_mvm, fullpath_rwa, fullpath_dta, columns_rw
     axbis1.hist ( dfhd[( dfhd['resistance']>0)]['resistance'].unique() , bins=50 )
     axbis1.set_xlabel("Measured resistance [cmH2O/l/s]")
 
-    axbis.set_xlabel("Time [sec]")
-    axbis.legend(loc='upper center', ncol=2)
-
-    axbis.set_title ("Test n %s"%meta[objname]['test_name'], weight='heavy')
     figpath = "%s/%s_service2_%s.pdf" % (output_directory, meta[objname]['Campaign'],  objname.replace('.txt', '')) # TODO: make sure it is correct, or will overwrite!
     print(f'Saving figure to {figpath}')
     figbis.savefig(figpath)
