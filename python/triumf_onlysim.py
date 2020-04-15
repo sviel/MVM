@@ -372,7 +372,7 @@ if __name__ == '__main__':
   parser.add_argument("-f", "--filename", type=str, help="single file to be processed", default='.')
   parser.add_argument("-c", "--campaign", type=str, help="single campaign to be processed", default="")
   parser.add_argument("-o", "--offset", type=float, help="offset between vent/sim", default='.0')
-  parser.add_argument("--db-google-id", type=str, help="name of the Google spreadsheet ID for metadata", default="13pRlJjFvt4uij0GGbEGxFzvdt3v3bVnYYFwJjRzLMoI")
+  parser.add_argument("--db-google-id", type=str, help="name of the Google spreadsheet ID for metadata", default="1aQjGTREc9e7ScwrTQEqHD2gmRy9LhDiVatWznZJdlqM")
   parser.add_argument("--db-range-name", type=str, help="name of the Google spreadsheet range for metadata", default="TRIUMF!A2:AP")
   args = parser.parse_args()
 

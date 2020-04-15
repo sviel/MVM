@@ -11,8 +11,8 @@ DATADIR='/Users/sviel/MVM/Data'
 #python python/combine.py ${DATADIR} -p --mvm-col='mvm_col_arduino' -d plots_iso_Apr13_ignoresim --ignore_sim -f VENTILATOR_12042020_CONTROLLED_FR20_PEEP5_PINSP30_C20_R20_RATIO050_leak.txt
 
 ## plot TRIUMF data
-#python python/triumf.py ${DATADIR} -p -d plots_triumf_Apr10
-python python/triumf.py ${DATADIR} -p -d plots_triumf_Apr10b --db-google-id 1aQjGTREc9e7ScwrTQEqHD2gmRy9LhDiVatWznZJdlqM
+#python python/triumf_onlysim.py ${DATADIR} -p -d plots_triumf_Apr10 --db-google-id 13pRlJjFvt4uij0GGbEGxFzvdt3v3bVnYYFwJjRzLMoI
+python python/triumf_onlysim.py ${DATADIR} -p -d plots_triumf_Apr10  # TRIUMF tab is now on main spreadsheet
 
 
 
