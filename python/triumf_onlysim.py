@@ -424,7 +424,7 @@ if __name__ == '__main__':
 
     objname = f'{filename}_0'   #at least first element is always there
 
-    # compute the file location: local folder to the data repository + campaign folder + filename
+    # compute the file location: local folder to the data repository + campaign folder
     fname = f'{args.input}/{meta[objname]["Campaign"]}'
 
     # the ventilator data location would be
