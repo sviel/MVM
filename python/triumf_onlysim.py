@@ -424,8 +424,8 @@ if __name__ == '__main__':
 
     objname = f'{filename}_0'   #at least first element is always there
 
-    # compute the file location: local folder to the data repository + compaign folder + filename
-    fname = f'{args.input}/{meta[objname]["Campaign"]}/{meta[objname]["MVM_filename"]}'
+    # compute the file location: local folder to the data repository + campaign folder + filename
+    fname = f'{args.input}/{meta[objname]["Campaign"]}'
 
     print(f'\nFile name {fname}')
     if fname.split('/')[-1] in args.skip_files:
@@ -437,8 +437,11 @@ if __name__ == '__main__':
         print(f'    ... not in selected campaign {args.campaign}')
         continue
 
+    # the ventilator data location would be
+    #fullpath_mvm = f'{fname}/{meta[objname]["MVM_dirname"]}/{meta[objname]["MVM_filename"]}'
+
     # determine RWA and DTA data locations
-    fullpath_rwa = f'{fname}/{meta[objname]["SimulatorFileName"]}'
+    fullpath_rwa = f'{fname}/{meta[objname]["SimulatorDirName"]}/{meta[objname]["SimulatorFileName"]}'
 
     if fullpath_rwa.endswith('.dta'):
       fullpath_rwa =  fullpath_rwa[:-4]      #remove extension if dta
