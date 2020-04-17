@@ -133,7 +133,7 @@ def process_run(meta, objname, fullpath_rwa, fullpath_dta, columns_rwa, columns_
   ##################################
 
   # compute cycle start
-  start_times    = get_start_times(df, thr=8, quantity='airway_pressure', timecol='dt')
+  start_times    = get_start_times(df, thr=5, quantity='total_flow', timecol='dt')
   reaction_times = get_reaction_times(df, start_times)
 
   # add info
@@ -424,25 +424,21 @@ if __name__ == '__main__':
 
     objname = f'{filename}_0'   #at least first element is always there
 
-    # compute the file location: local folder to the data repository + campaign folder
-    fname = f'{args.input}/{meta[objname]["Campaign"]}'
+    # compute the file location: local folder to the data repository + compaign folder + filename
+    fname = f'{args.input}/{meta[objname]["Campaign"]}/{meta[objname]["MVM_filename"]}'
 
-    # the ventilator data location would be
-    fullpath_mvm = f'{fname}/{meta[objname]["MVM_dirname"]}/{meta[objname]["MVM_filename"]}'
-
-    # check for files to be skipped
-    print(f'\nMVM file name {fullpath_mvm}')
-    if fullpath_mvm.split('/')[-1] in args.skip_files:
+    print(f'\nFile name {fname}')
+    if fname.split('/')[-1] in args.skip_files:
       print('    ... skipped')
       continue
 
     if args.campaign:
-      if args.campaign not in fullpath_mvm:
+      if args.campaign not in fname:
         print(f'    ... not in selected campaign {args.campaign}')
         continue
 
     # determine RWA and DTA data locations
-    fullpath_rwa = f'{fname}/{meta[objname]["SimulatorDirName"]}/{meta[objname]["SimulatorFileName"]}'
+    fullpath_rwa = f'{args.input}/{meta[objname]["Campaign"]}/{meta[objname]["SimulatorFileName"]}'
 
     if fullpath_rwa.endswith('.dta'):
       fullpath_rwa =  fullpath_rwa[:-4]      #remove extension if dta
